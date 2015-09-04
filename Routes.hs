@@ -9,18 +9,28 @@ data Routes f = Route [PathPattern] f | Scope [PathPattern] (Routes f) | Many [R
 
 -- Ejercicio 1: Dado un elemento separador y una lista, se deber a partir la lista en sublistas de acuerdo a la aparicíon del separador (sin incluirlo).
 
+
 split :: Eq a => a -> [a] -> [[a]]
-split d = undefined
+split e = foldr (\x r -> if not (x == e) then
+   				 ( if (null r) then [x]:r
+   					 else (x:(head r)):(tail r))
+   				 else []:r
+   			 )
+   			 [[]]
+
 
 -- Ejercicio 2: A partir de una cadena que denota un patrón de URL se deberá construir la secuencia de literales y capturas correspondiente.
 pattern :: String -> [PathPattern]
-pattern = undefined
+pattern a = tail $ map convertirAPathPattern $ split '/' a
+
+convertirAPathPattern :: String -> PathPattern
+convertirAPathPattern a = if null a then Literal "" else (if head a == ':' then Capture (tail a) else Literal a)
 
 -- Ejercicio 3: Obtiene el valor registrado en una captura determinada. Se puede suponer que la captura está definida en el contexto.
 type PathContext = [(String, String)]
 
 get :: String -> PathContext -> String
-get s = undefined
+get s = foldr (\x r -> if fst x == s  then snd x else r) ""
 
 -- Ejercicio 4: Dadas una ruta particionada y un patrón de URL, trata de aplicar el patrón a la ruta y devuelve, en caso de que
 --              la ruta sea un prefijo válido para el patrón, el resto de la ruta que no se haya llegado a consumir y el contexto capturado hasta el punto alcanzado.
