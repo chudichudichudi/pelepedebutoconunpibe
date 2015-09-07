@@ -11,20 +11,22 @@ data Routes f = Route [PathPattern] f | Scope [PathPattern] (Routes f) | Many [R
 
 
 split :: Eq a => a -> [a] -> [[a]]
-split e = foldr (\x r -> if not (x == e) then
-   				 ( if (null r) then [x]:r
-   					 else (x:(head r)):(tail r))
-   				 else []:r
-   			 )
-   			 [[]]
-
+split e = foldr (\x r -> if (x == e) then
+   				 			[]:r
+   				 		else
+   				 			if null r then [x]:r
+   				 			else
+   				 			(x:(head r)):(tail r)
+   			 	) [[]]
+ 
 
 -- Ejercicio 2: A partir de una cadena que denota un patrón de URL se deberá construir la secuencia de literales y capturas correspondiente.
 pattern :: String -> [PathPattern]
-pattern a = tail $ map convertirAPathPattern $ split '/' a
+pattern "" = []
+pattern a = map convertirAPathPattern $ filter (\e -> e /= "") $ split '/' a
 
 convertirAPathPattern :: String -> PathPattern
-convertirAPathPattern a = if null a then Literal "" else (if head a == ':' then Capture (tail a) else Literal a)
+convertirAPathPattern a = if head a == ':' then Capture (tail a) else Literal a
 
 -- Ejercicio 3: Obtiene el valor registrado en una captura determinada. Se puede suponer que la captura está definida en el contexto.
 type PathContext = [(String, String)]
@@ -36,8 +38,24 @@ get s = foldr (\x r -> if fst x == s  then snd x else r) ""
 --              la ruta sea un prefijo válido para el patrón, el resto de la ruta que no se haya llegado a consumir y el contexto capturado hasta el punto alcanzado.
 -- Se puede usar recursión explícita.
 
+-- Just (["tpf"],[("nombreMateria","plp")]) ~=? matches (splitSlash "materias/plp/tpf") (pattern "materias/:nombreMateria")
+--Just (["tpf"],[("nombreMateria","plp")]) ~=? ["materias","plp","alu", "007"] [Literal "materias",Capture "nombreMateria"]
+
+-- ["alu", "007", "materias", "plp"] [Literal "materias",Capture "nombreMateria"]
+--Just ([""],[("nombreMateria","poo")]) ~=?["materias","poo","hola","yerba","taragui"] [Literal "materias", Capture "nombreMateria", Literal "yerba", Capture "mate"]
+-- [],[()]
+matcheaLiteral e (Literal s) (Capture _ ) = (e == s) 
+matcheaLiteral e (Capture s) _ = False
+matcheaLiteral e (Capture s) _ = False
+
+captureName (Capture x) = x
+
 matches :: [String] -> [PathPattern] -> Maybe ([String], PathContext)
-matches ss ps = undefined
+matches [] ps = Nothing
+matches [] [] = Nothing
+matches (s1:s2:ss) (p1:p2:ps) = if matcheaLiteral s1 p1 p2 
+							then Just ( (fst matches s1:s2:ss ps), ((captureName p2) ,s2):(snd (matches ss ps))) 
+							else Just ( (fst matches ss ps)      , snd (matches ss ps))
 
 
 -- DSL para rutas
@@ -51,7 +69,12 @@ many :: [Routes a] -> Routes a
 many l = Many l
 
 -- Ejercicio 5: Definir el fold para el tipo Routes f y su tipo. Se puede usar recursión explícita.
-foldRoutes = undefined
+foldRoutes :: ( [PathPattern] -> f -> b ) -> ( [PathPattern] -> b -> b ) -> ( [b]  -> b ) -> Routes f -> b
+foldRoutes f1 f2 f3 = g
+						  where
+						    g (Route xs f) = f1 xs f
+						    g (Scope xs r) = f2 xs $ foldRoutes f1 f2 f3 r
+						    g (Many xs) =  f3 $ map (foldRoutes f1 f2 f3) xs
 
 -- Auxiliar para mostrar patrones. Es la inversa de pattern.
 patternShow :: [PathPattern] -> String

@@ -31,14 +31,13 @@ allTests = test [
 splitSlash = split '/'
 
 testsPattern = test [
-  splitSlash "" ~=? [],
+  splitSlash "" ~=? [""],
 	splitSlash "/" ~=? ["",""],
 	splitSlash "/foo" ~=? ["", "foo"],
 	pattern "" ~=? [],
 	pattern "/" ~=? [],
 	pattern "lit1/:cap1/:cap2/lit2/:cap3" ~=? [Literal "lit1", Capture "cap1", Capture "cap2", Literal "lit2", Capture "cap3"]
 	]
-
 
 testsMatches = test [
 	Just (["tpf"],[("nombreMateria","plp")]) ~=? matches (splitSlash "materias/plp/tpf") (pattern "materias/:nombreMateria")
