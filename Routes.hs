@@ -46,16 +46,18 @@ get s = foldr (\x r -> if fst x == s  then snd x else r) ""
 -- [],[()]
 matcheaLiteral e (Literal s) (Capture _ ) = (e == s) 
 matcheaLiteral e (Capture s) _ = False
-matcheaLiteral e (Capture s) _ = False
 
 captureName (Capture x) = x
 
-matches :: [String] -> [PathPattern] -> Maybe ([String], PathContext)
+matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
 matches [] ps = Nothing
-matches [] [] = Nothing
+matches ss [] = Just (ss, [])
 matches (s1:s2:ss) (p1:p2:ps) = if matcheaLiteral s1 p1 p2 
-							then Just ( (fst matches s1:s2:ss ps), ((captureName p2) ,s2):(snd (matches ss ps))) 
-							else Just ( (fst matches ss ps)      , snd (matches ss ps))
+							then Just ( (fst ( resMatches ss ps )), ((captureName p2) ,s2):(snd (resMatches ss ps))) 
+							else Just ( (fst ( resMatches (s1:s2:ss) ps )), (snd (resMatches ss ps)))
+							where resMatches ss ps = case matches ss ps of
+												Just (s, p) -> (s, p)
+												Nothing -> ([],[])
 
 
 -- DSL para rutas
