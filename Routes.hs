@@ -47,13 +47,14 @@ get s = foldr (\x r -> if fst x == s  then snd x else r) ""
 matcheaLiteral e (Literal s) (Capture _ ) = (e == s) 
 matcheaLiteral e (Capture s) _ = False
 
-captureName (Capture x) = x
+getName (Capture x) = x
+getName (Literal x) = x
 
 matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
 matches [] ps = Nothing
 matches ss [] = Just (ss, [])
 matches (s1:s2:ss) (p1:p2:ps) = if matcheaLiteral s1 p1 p2 
-							then Just ( (fst ( resMatches ss ps )), ((captureName p2) ,s2):(snd (resMatches ss ps))) 
+							then Just ( (fst ( resMatches ss ps )), ((getName p2) ,s2):(snd (resMatches ss ps))) 
 							else Just ( (fst ( resMatches (s1:s2:ss) ps )), (snd (resMatches ss (p2:ps))))
 							where resMatches ss ps = case matches ss ps of
 												Just (s, p) -> (s, p)
@@ -71,12 +72,12 @@ many :: [Routes a] -> Routes a
 many l = Many l
 
 -- Ejercicio 5: Definir el fold para el tipo Routes f y su tipo. Se puede usar recursión explícita.
-foldRoutes :: ( [PathPattern] -> f -> b ) -> ( [PathPattern] -> b -> b ) -> ( [b]  -> b ) -> Routes f -> b
-foldRoutes f1 f2 f3 = g
+foldRoutes :: ( [PathPattern] -> f -> b -> b ) -> ( [PathPattern] -> b -> b ) -> ( [b] -> b ) -> b -> Routes f -> b
+foldRoutes f1 f2 f3 z = g
 						  where
-						    g (Route xs f) = f1 xs f
-						    g (Scope xs r) = f2 xs $ foldRoutes f1 f2 f3 r
-						    g (Many xs) =  f3 $ map (foldRoutes f1 f2 f3) xs
+						    g (Route xs f) = f1 xs f z
+						    g (Scope xs r) = f2 xs (foldRoutes f1 f2 f3 z r)
+						    g (Many xs) =  f3 (map (foldRoutes f1 f2 f3 z) xs) 
 
 -- Auxiliar para mostrar patrones. Es la inversa de pattern.
 patternShow :: [PathPattern] -> String
@@ -86,8 +87,18 @@ patternShow ps = concat $ intersperse "/" ((map (\p -> case p of
   )) ps)
 
 -- Ejercicio 6: Genera todos los posibles paths para una ruta definida.
+-- data Routes f = Route [PathPattern] f | Scope [PathPattern] (Routes f) | Many [Routes f] deriving Show
+-- data PathPattern = Literal String | Capture String deriving (Eq, Show)
+
+
 paths :: Routes a -> [String]
-paths = undefined
+paths = foldRoutes 
+			-- Concatenamos cada ruta al resultado parcial
+			(\paths handler casoBase -> ( map (\x -> getName x) paths ) ++ casoBase)
+			(\paths resultadoParcial -> ( map (\x -> getName x) paths ) ++ resultadoParcial)
+			(\paths -> paths)
+			[] 
+
 
 -- Ejercicio 7: Evalúa un path con una definición de ruta y, en caso de haber coincidencia, obtiene el handler correspondiente 
 --              y el contexto de capturas obtenido.
