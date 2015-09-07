@@ -48,6 +48,7 @@ matcheaLiteral e (Literal s) (Capture _ ) = (e == s)
 matcheaLiteral e (Capture s) _ = False
 
 captureName (Capture x) = x
+captureName (Literal x) = x
 
 matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
 matches [] ps = Nothing
@@ -86,8 +87,13 @@ patternShow ps = concat $ intersperse "/" ((map (\p -> case p of
   )) ps)
 
 -- Ejercicio 6: Genera todos los posibles paths para una ruta definida.
+
+
+--algo anda mal!
 paths :: Routes a -> [String]
-paths = undefined
+paths = foldRoutes (\paths f -> map captureName paths )
+				   (\paths res -> map captureName paths ++ res )
+				   (\res -> concat res )
 
 -- Ejercicio 7: Evalúa un path con una definición de ruta y, en caso de haber coincidencia, obtiene el handler correspondiente 
 --              y el contexto de capturas obtenido.
@@ -108,7 +114,15 @@ exec routes path = undefined
 -- Ejercicio 9: Permite aplicar una funci ́on sobre el handler de una ruta. Esto, por ejemplo, podría permitir la ejecución 
 --              concatenada de dos o más handlers.
 wrap :: (a -> b) -> Routes a -> Routes b
-wrap f = undefined
+
+wrap f = foldRoutes 
+-- Si es el caso base de las rutas, entonces es construir una nueva ruta en la que al handler previamente se le aplica f
+		(\paths h -> (Route paths $ f h)) 
+-- En el caso de que sea un scope, el scope se compone de una lista de Paths y una Routes f... entonces es tomar los mismos paths y armar un scope pero con el resultado parcial que vino calculado en la recursión del fold
+		(\paths resultadoParcial -> Scope paths resultadoParcial) 
+
+-- En el caso de que sea un Many, alcanza con armar un many con las rutas que le vienen.. se asume que esas rutas ya vienen procesadas con el handler "cambiado".
+		(\resultadoDeLasRutas -> many resultadoDeLasRutas)
 
 -- Ejercicio 10: Genera un Routes que captura todas las rutas, de cualquier longitud. A todos los patrones devuelven el mismo valor. 
 --               Las capturas usadas en los patrones se deberán llamar p0, p1, etc. 
