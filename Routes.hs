@@ -54,7 +54,7 @@ matches [] ps = Nothing
 matches ss [] = Just (ss, [])
 matches (s1:s2:ss) (p1:p2:ps) = if matcheaLiteral s1 p1 p2 
 							then Just ( (fst ( resMatches ss ps )), ((captureName p2) ,s2):(snd (resMatches ss ps))) 
-							else Just ( (fst ( resMatches (s1:s2:ss) ps )), (snd (resMatches ss ps)))
+							else Just ( (fst ( resMatches (s1:s2:ss) ps )), (snd (resMatches ss (p2:ps))))
 							where resMatches ss ps = case matches ss ps of
 												Just (s, p) -> (s, p)
 												Nothing -> ([],[])
