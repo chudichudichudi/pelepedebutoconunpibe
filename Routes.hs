@@ -108,21 +108,18 @@ captureName (Capture x) = x
 
 
 matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
+matches [] [] = Nothing
 matches [] ps = Nothing
 matches ss [] = Just (ss, [])
---matches (s1:ss) (p1:ps) = Nothing
---matches (s1:ss) (p1:ps) = Nothing
 matches (s1:s2:ss) (p1:p2:ps) = if matcheaLiteral s1 p1 p2 
 							then Just ( (fst ( resMatches ss ps )), ((captureName p2) ,s2):(snd (resMatches ss ps))) 
 							else Just ( (fst ( resMatches (s1:s2:ss) ps )), (snd (resMatches ss (p2:ps))))
 							where resMatches ss ps = case matches ss ps of
 												Just (s, p) -> (s, p)
 												Nothing -> ([],[])
-
-
+matches (ss) (p:ps) = Nothing
 
 ----------------------------------------------------------------------------------------------------------------------
-
 
 -- DSL para rutas
 route :: String -> a -> Routes a
@@ -134,9 +131,7 @@ scope s r = Scope (pattern s) r
 many :: [Routes a] -> Routes a
 many l = Many l
 
-
 ----------------------------------------------------------------------------------------------------------------------
-
 
 -- Ejercicio 5: Definir el fold para el tipo Routes f y su tipo. Se puede usar recursión explícita.
 {-
@@ -154,13 +149,11 @@ Este sería nuestro caso base.
 Acá lo que hacemos es aplicar 'f2' pasando como parámetro la lista de PathPattern que componen al scope y como segundo parámetro
 es el llamado recursivo de foldRoutes sobre las rutas que componen al scope original
 
-
 3) Many [Routes f]
 
 En este caso es llamar a foldRoutes para cada ruta del many
 
 -}
-
 
 foldRoutes :: ( [PathPattern] -> f -> b ) -> ( [PathPattern] -> b -> b ) -> ( [b]  -> b ) -> Routes f -> b
 foldRoutes f1 f2 f3 = g
@@ -169,11 +162,7 @@ foldRoutes f1 f2 f3 = g
 						    g (Scope xs r) = f2 xs $ foldRoutes f1 f2 f3 r
 						    g (Many xs) =  f3 $ map (foldRoutes f1 f2 f3) xs
 
-
-
-
 --------------------------------------------------------------------------------------------------------------------
-
 
 -- Auxiliar para mostrar patrones. Es la inversa de pattern.
 patternShow :: [PathPattern] -> String
@@ -182,9 +171,7 @@ patternShow ps = concat $ intersperse "/" ((map (\p -> case p of
   Capture s -> (':':s)
   )) ps)
 
-
 --------------------------------------------------------------------------------------------------------------------
-
 
 -- Ejercicio 6: Genera todos los posibles paths para una ruta definida.
 
@@ -207,28 +194,23 @@ y luego a cada uno le adjuntamos los paths que salen de Routes f en el llamado r
 
 En este caso es llamar a foldRoutes para cada ruta del many
 
-
-
-
 -}
 
-
 paths :: Routes a -> [String]
-paths = foldRoutes (\pathPatterns f -> formarRutaCompleta pathPatterns )
+paths = foldRoutes (\pathPatterns f -> (formarRutaCompleta pathPatterns):[] )
 				   (\ps res -> concat $ map (\unaRuta ->  adjuntarRutasProcesadas unaRuta res ) (rutasString ps)  )
 				   (\res -> concat res )
 				   where adjuntarRutasProcesadas unaRuta pathsRes =  map (\unPath -> unaRuta ++ ('/':unPath) ) pathsRes
 
-
-formarRutaCompleta = foldr (\unPathPattern res -> (pathPatternToString unPathPattern) ++ ('/':res)) ""
+formarRutaCompleta :: [PathPattern] -> [Char]
+formarRutaCompleta ps =  intercalate "/" $ map (\unPathPattern -> pathPatternToString unPathPattern) ps
 
 rutasString = map pathPatternToString
+
 pathPatternToString (Capture x) = ':':x
 pathPatternToString (Literal x) = x
 
-
 --------------------------------------------------------------------------------------------------------------------------------------
-
 
 -- Ejercicio 7: Evalúa un path con una definición de ruta y, en caso de haber coincidencia, obtiene el handler correspondiente 
 --              y el contexto de capturas obtenido.
@@ -237,23 +219,25 @@ Nota: la siguiente función viene definida en el módulo Data.Maybe.
  (=<<) :: (a->Maybe b)->Maybe a->Maybe b
  f =<< m = case m of Nothing -> Nothing; Just x -> f x
 -}
+
 eval :: Routes a -> String -> Maybe (a, PathContext)
 eval = undefined
 {-
-eval unaRuta string =  map (\unPath -> matches [string] (pattern unPath)) (paths unaRuta)
+eval unaRuta url = foldRoutes (\pathPatterns f -> matches (splitSlash paths) pathPatterns )
+				   			  (\ps res -> matches splitSlash paths ps  )
+				   			  (\res ->  )
+
+splitSlash = split '/'
 -}
-
-
 
 ------------------------------------------------------------------------------------------------------------------------------------------
 
 
 -- Ejercicio 8: Similar a eval, pero aquí se espera que el handler sea una función que recibe como entrada el contexto 
 --              con las capturas, por lo que se devolverá el resultado de su aplicación, en caso de haber coincidencia.
+
 exec :: Routes (PathContext -> a) -> String -> Maybe a
 exec routes path = undefined
-
-
 
 ------------------------------------------------------------------------------------------------------------------------------------------
 

@@ -60,8 +60,8 @@ testsMatches = test [
 	matches (splitSlash "materias/plp/tpf") (pattern "materias/:nombreMateria") ~=? Just (["tpf"],[("nombreMateria","plp")]) ,
 	matches ["materia","plp","alu","007−1"] [ Literal "materia",Capture "nombre"] ~=? Just (["alu","007−1"] ,[("nombre","plp")]),
 	matches ["otra","ruta"] [ Literal "ayuda"] ~=? Nothing,
-	matches [ ] [ Literal "algo"] ~=? Nothing,
-	matches ["materia","plp","alu","007−1"] [ Literal "alu",Capture ":libreta"] ~=? Just ([""] ,[("alu","007-1")])
+	matches [ ] [ Literal "algo"] ~=? Nothing
+	--,matches ["materia","plp","alu","007−1"] [ Literal "alu",Capture ":libreta"] ~=? Just ([""] ,[("alu","007-1")])
 	]
 
 
