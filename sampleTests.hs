@@ -34,7 +34,8 @@ testsPattern = test [
   splitSlash "" ~=? [""],
 	splitSlash "/" ~=? ["",""],
 	splitSlash "/foo" ~=? ["", "foo"],
-	pattern "" ~=? [],
+	--pattern "" ~=? [], 
+	pattern "" ~=? [Literal ""],
 	pattern "/" ~=? [],
 	pattern "lit1/:cap1/:cap2/lit2/:cap3" ~=? [Literal "lit1", Capture "cap1", Capture "cap2", Literal "lit2", Capture "cap3"]
 	]
@@ -47,6 +48,9 @@ path0 = route "foo" 1
 path1 = scope "foo" (route "bar" 2)
 path2 = scope "foo" (route ":bar" 3)
 path3 = scope "" $ scope "" $ many [ scope "" $ route "foo" 1]
+path555 = route "" 1
+path666 = scope "foo" $ many [ route "bar" 1, route ":pirulo" 1]
+path667 = scope "foo1" $ many [ route "bar" 1, many [ route ":pirulo" 1, scope "foo2" $ many [route "foo3" 1, route ":foo4" 1]]]
 
 testsEvalCtxt = test [
 	Just (1, []) ~=? eval path0 "foo",
@@ -84,13 +88,13 @@ testsEvalWrap = test [
 -- ejempo donde el valor de cada ruta es una función que toma context como entrada.
 -- para estos se puede usar en lugar además de eval, la función exec para devolver
 -- la applicación de la función con sobre el contexto determinado por la ruta
-rest entity = many [
-  (route entity (const (entity++"#index"))),
-  (scope (entity++"/:id") (many [
-    (route "" (const (entity++"#show"))),
-    (route "create" (\ctx -> entity ++ "#create of " ++ (get "id" ctx))),
-    (route "update" (\ctx -> entity ++ "#update of " ++ (get "id" ctx))),
-    (route "delete" (\ctx -> entity ++ "#delete of " ++ (get "id" ctx)))
+rest nombre = many [
+  (route nombre (const (nombre++"#index"))),
+  (scope (nombre++"/:id") (many [
+    (route "" (const (nombre++"#show"))),
+    (route "create" (\ctx -> nombre ++ "#create of " ++ (get "id" ctx))),
+    (route "update" (\ctx -> nombre ++ "#update of " ++ (get "id" ctx))),
+    (route "delete" (\ctx -> nombre ++ "#delete of " ++ (get "id" ctx)))
     ]))
   ]
 
@@ -101,8 +105,14 @@ path5 = many [
   ]
 
 testsPaths = test [
- 	sort ["","post","post/:id","post/:id/create","post/:id/update","post/:id/delete","category","category/:id","category/:id/create","category/:id/update","category/:id/delete"] ~=?
-	 	sort (paths path5)
+ 	sort ["","post","post/:id","post/:id/create","post/:id/update","post/:id/delete","category","category/:id","category/:id/create","category/:id/update","category/:id/delete"] ~=? sort (paths path5),
+	sort [""] ~=? sort (paths path555),
+ 	sort ["foo"] ~=? sort (paths path0),
+ 	sort ["foo/bar"] ~=? sort (paths path1),
+ 	sort ["foo/:bar"] ~=? sort (paths path2),
+ 	sort ["foo/bar", "foo/:pirulo"] ~=? sort (paths path666),
+ 	sort ["foo1/bar","foo1/:pirulo","foo1/foo2/foo3","foo1/foo2/:foo4"] ~=? sort (paths path667)
+ 	
 	]
 
 

@@ -22,7 +22,7 @@ split e = foldr (\x r -> if (x == e) then
 
 -- Ejercicio 2: A partir de una cadena que denota un patrón de URL se deberá construir la secuencia de literales y capturas correspondiente.
 pattern :: String -> [PathPattern]
-pattern "" = []
+pattern "" = [Literal ""]
 pattern a = map convertirAPathPattern $ filter (\e -> e /= "") $ split '/' a
 
 convertirAPathPattern :: String -> PathPattern
@@ -48,7 +48,6 @@ matcheaLiteral e (Literal s) (Capture _ ) = (e == s)
 matcheaLiteral e (Capture s) _ = False
 
 captureName (Capture x) = x
-captureName (Literal x) = x
 
 matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
 matches [] ps = Nothing
@@ -88,12 +87,16 @@ patternShow ps = concat $ intersperse "/" ((map (\p -> case p of
 
 -- Ejercicio 6: Genera todos los posibles paths para una ruta definida.
 
-
---algo anda mal!
 paths :: Routes a -> [String]
-paths = foldRoutes (\paths f -> map captureName paths )
-				   (\paths res -> map captureName paths ++ res )
+paths = foldRoutes (\ps f -> rutasString ps )
+				   (\ps res -> concat $ map (\unaRuta ->  adjuntarRutasProcesadas unaRuta res ) (rutasString ps)  )
 				   (\res -> concat res )
+				   where adjuntarRutasProcesadas unaRuta pathsRes =  map (\unPath -> unaRuta ++ ('/':unPath) ) pathsRes
+
+rutasString = map pathPatternToString
+pathPatternToString (Capture x) = ':':x
+pathPatternToString (Literal x) = x
+
 
 -- Ejercicio 7: Evalúa un path con una definición de ruta y, en caso de haber coincidencia, obtiene el handler correspondiente 
 --              y el contexto de capturas obtenido.
@@ -103,7 +106,7 @@ Nota: la siguiente función viene definida en el módulo Data.Maybe.
  f =<< m = case m of Nothing -> Nothing; Just x -> f x
 -}
 eval :: Routes a -> String -> Maybe (a, PathContext)
-eval = undefined
+eval r string =  map (\unPath -> matches [string] (pattern unPath)) (paths r)
 
 
 -- Ejercicio 8: Similar a eval, pero aquí se espera que el handler sea una función que recibe como entrada el contexto 
