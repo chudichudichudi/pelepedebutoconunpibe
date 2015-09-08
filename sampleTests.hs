@@ -72,6 +72,7 @@ path3 = scope "" $ scope "" $ many [ scope "" $ route "foo" 1]
 path555 = route "" 1
 path666 = scope "foo" $ many [ route "bar" 1, route ":pirulo" 1]
 path667 = scope "foo1" $ many [ route "bar" 1, many [ route ":pirulo" 1, scope "foo2" $ many [route "foo3" 1, route ":foo4" 1]]]
+path668 = many [ route "hola" 1 , scope "foo1" $ many [ route "bar" 1, many [ route ":pirulo" 1, scope "foo2" $ many [route "foo3" 1, route ":foo4" 1]]]]
 
 testsEvalCtxt = test [
 	Just (1, []) ~=? eval path0 "foo",
@@ -132,8 +133,9 @@ testsPaths = test [
  	sort ["foo/bar"] ~=? sort (paths path1),
  	sort ["foo/:bar"] ~=? sort (paths path2),
  	sort ["foo/bar", "foo/:pirulo"] ~=? sort (paths path666),
- 	sort ["foo1/bar","foo1/:pirulo","foo1/foo2/foo3","foo1/foo2/:foo4"] ~=? sort (paths path667)
- 	
+ 	sort ["foo1/bar","foo1/:pirulo","foo1/foo2/foo3","foo1/foo2/:foo4"] ~=? sort (paths path667),
+	sort ["hola","foo1/bar","foo1/:pirulo","foo1/foo2/foo3","foo1/foo2/:foo4"] ~=? sort (paths path668),
+	["personas/santiago"] ~=? paths (route "personas/santiago" "aprobar")
 	]
 
 

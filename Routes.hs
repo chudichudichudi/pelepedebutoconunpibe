@@ -110,6 +110,8 @@ captureName (Capture x) = x
 matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
 matches [] ps = Nothing
 matches ss [] = Just (ss, [])
+--matches (s1:ss) (p1:ps) = Nothing
+--matches (s1:ss) (p1:ps) = Nothing
 matches (s1:s2:ss) (p1:p2:ps) = if matcheaLiteral s1 p1 p2 
 							then Just ( (fst ( resMatches ss ps )), ((captureName p2) ,s2):(snd (resMatches ss ps))) 
 							else Just ( (fst ( resMatches (s1:s2:ss) ps )), (snd (resMatches ss (p2:ps))))
@@ -139,6 +141,23 @@ many l = Many l
 -- Ejercicio 5: Definir el fold para el tipo Routes f y su tipo. Se puede usar recursión explícita.
 {-
 
+Vamos a separar en casos para explicar:
+
+1) Routes [PathPattern] f
+
+Acá el valor Z que se suele explicitar en el foldr sobre listas es aplicarle a una función 'f1' los PathPattern que componen a la ruta y su handler.
+Este sería nuestro caso base.
+
+
+2) Scope [PathPattern] (Routes f) 
+
+Acá lo que hacemos es aplicar 'f2' pasando como parámetro la lista de PathPattern que componen al scope y como segundo parámetro
+es el llamado recursivo de foldRoutes sobre las rutas que componen al scope original
+
+
+3) Many [Routes f]
+
+En este caso es llamar a foldRoutes para cada ruta del many
 
 -}
 
@@ -150,6 +169,12 @@ foldRoutes f1 f2 f3 = g
 						    g (Scope xs r) = f2 xs $ foldRoutes f1 f2 f3 r
 						    g (Many xs) =  f3 $ map (foldRoutes f1 f2 f3) xs
 
+
+
+
+--------------------------------------------------------------------------------------------------------------------
+
+
 -- Auxiliar para mostrar patrones. Es la inversa de pattern.
 patternShow :: [PathPattern] -> String
 patternShow ps = concat $ intersperse "/" ((map (\p -> case p of
@@ -157,17 +182,52 @@ patternShow ps = concat $ intersperse "/" ((map (\p -> case p of
   Capture s -> (':':s)
   )) ps)
 
+
+--------------------------------------------------------------------------------------------------------------------
+
+
 -- Ejercicio 6: Genera todos los posibles paths para una ruta definida.
 
+{-
+
+En este caso usamos el foldRoutes previamente definido.
+
+1) Routes [PathPattern] f
+
+Acá lo que queremos es tomar los PathPattern que componen a la ruta y convertirlos a string. Para este caso no deberíamos tener un resultado parcial al cual
+concatenarle estos paths obtenidos así que el lamba sólo invoca a 'rutasString pathPatterns'
+
+
+2) Scope [PathPattern] (Routes f) 
+
+Acá vamos a tener un conjunto de pathPatterns que los pasamos a string (mediante 'rutasString ps' )
+y luego a cada uno le adjuntamos los paths que salen de Routes f en el llamado recursivo.
+
+3) Many [Routes f]
+
+En este caso es llamar a foldRoutes para cada ruta del many
+
+
+
+
+-}
+
+
 paths :: Routes a -> [String]
-paths = foldRoutes (\ps f -> rutasString ps )
+paths = foldRoutes (\pathPatterns f -> formarRutaCompleta pathPatterns )
 				   (\ps res -> concat $ map (\unaRuta ->  adjuntarRutasProcesadas unaRuta res ) (rutasString ps)  )
 				   (\res -> concat res )
 				   where adjuntarRutasProcesadas unaRuta pathsRes =  map (\unPath -> unaRuta ++ ('/':unPath) ) pathsRes
 
+
+formarRutaCompleta = foldr (\unPathPattern res -> (pathPatternToString unPathPattern) ++ ('/':res)) ""
+
 rutasString = map pathPatternToString
 pathPatternToString (Capture x) = ':':x
 pathPatternToString (Literal x) = x
+
+
+--------------------------------------------------------------------------------------------------------------------------------------
 
 
 -- Ejercicio 7: Evalúa un path con una definición de ruta y, en caso de haber coincidencia, obtiene el handler correspondiente 
@@ -184,10 +244,18 @@ eval unaRuta string =  map (\unPath -> matches [string] (pattern unPath)) (paths
 -}
 
 
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+
 -- Ejercicio 8: Similar a eval, pero aquí se espera que el handler sea una función que recibe como entrada el contexto 
 --              con las capturas, por lo que se devolverá el resultado de su aplicación, en caso de haber coincidencia.
 exec :: Routes (PathContext -> a) -> String -> Maybe a
 exec routes path = undefined
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------------
 
 -- Ejercicio 9: Permite aplicar una funci ́on sobre el handler de una ruta. Esto, por ejemplo, podría permitir la ejecución 
 --              concatenada de dos o más handlers.
