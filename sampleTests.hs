@@ -25,10 +25,14 @@ allTests = test [
 	"eval" ~: testsEval,
 	"evalWrap" ~: testsEvalWrap,
 	"evalCtxt"~: testsEvalCtxt,
-	"execEntity" ~: testsExecEntity
+	"execEntity" ~: testsExecEntity,
+	"pathContext" ~: testsPathContext
 	]
 
 splitSlash = split '/'
+
+
+
 
 testsPattern = test [
   splitSlash "" ~=? [""],
@@ -40,9 +44,26 @@ testsPattern = test [
 	pattern "lit1/:cap1/:cap2/lit2/:cap3" ~=? [Literal "lit1", Capture "cap1", Capture "cap2", Literal "lit2", Capture "cap3"]
 	]
 
-testsMatches = test [
-	Just (["tpf"],[("nombreMateria","plp")]) ~=? matches (splitSlash "materias/plp/tpf") (pattern "materias/:nombreMateria")
+
+testsPathContext = test [
+	get "nombre" [("nombre","chimi")] ~=? "chimi",
+	get "nombre" [("apellido","curry")] ~=? "",
+	get "nombre" [("apellido","curry"), ("nombre","chimi")] ~=? "chimi",
+	get "" [("apellido","curry"), ("nombre","chimi")] ~=? "",
+	get "nombre" [("nombre","chimi"), ("nombre","curry")] ~=? "chimi"
 	]
+
+
+
+
+testsMatches = test [
+	matches (splitSlash "materias/plp/tpf") (pattern "materias/:nombreMateria") ~=? Just (["tpf"],[("nombreMateria","plp")]) ,
+	matches ["materia","plp","alu","007−1"] [ Literal "materia",Capture "nombre"] ~=? Just (["alu","007−1"] ,[("nombre","plp")]),
+	matches ["otra","ruta"] [ Literal "ayuda"] ~=? Nothing,
+	matches [ ] [ Literal "algo"] ~=? Nothing,
+	matches ["materia","plp","alu","007−1"] [ Literal "alu",Capture ":libreta"] ~=? Just ([""] ,[("alu","007-1")])
+	]
+
 
 path0 = route "foo" 1
 path1 = scope "foo" (route "bar" 2)

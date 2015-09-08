@@ -7,20 +7,50 @@ data PathPattern = Literal String | Capture String deriving (Eq, Show)
 
 data Routes f = Route [PathPattern] f | Scope [PathPattern] (Routes f) | Many [Routes f] deriving Show
 
+
+
+
 -- Ejercicio 1: Dado un elemento separador y una lista, se deber a partir la lista en sublistas de acuerdo a la aparicíon del separador (sin incluirlo).
+{-
+
+"Iteramos" sobre la lista tomando decisiones
+
+Si encontramos un elemento de split, por ejemplo el '/' entonces tenemos que agregar una lista vacía a la lista resultado para que los elementos que encontremos después los metamos en esa nueva lista.
+
+De esa forma, por cada '/' deberíamos tener una lista nueva
 
 
+
+-}
 split :: Eq a => a -> [a] -> [[a]]
 split e = foldr (\x r -> if (x == e) then
+
+						-- Encontramos elemento de corte, arrancamos una lista nueva...
    				 			[]:r
    				 		else
+						-- Si no es elemento de corte, entonces lo metemos al comienzo de la primer lista del resultado parcial..
+						-- Si el resultado parcial fuese una lista vacía entonces metemos directamente la lista [x] para empezar .. esto es más un caso borde
+						-- Si el resultado parcial ya tiene elementos entonces podemos pedirle su primer elemento y ahí agregamos x
+						 	
    				 			if null r then [x]:r
    				 			else
-   				 			(x:(head r)):(tail r)
+								meterXAlComienzoDeLaPrimerLista x r
+
    			 	) [[]]
  
 
+meterXAlComienzoDeLaPrimerLista x r = (x:(head r)):(tail r)
+
+---------------------------------------------------------------------------------------------------------------------------------------
+
+
 -- Ejercicio 2: A partir de una cadena que denota un patrón de URL se deberá construir la secuencia de literales y capturas correspondiente.
+{-
+ Dada la url, primero le aplicamos el split para obtener sus "PathPatterns en formato string" y de ahí sacamos los vacíos.
+ Luego mediante un map los convertimos a sus Pathpattern correspondiente.
+-}
+
+
 pattern :: String -> [PathPattern]
 pattern "" = [Literal ""]
 pattern a = map convertirAPathPattern $ filter (\e -> e /= "") $ split '/' a
@@ -28,26 +58,54 @@ pattern a = map convertirAPathPattern $ filter (\e -> e /= "") $ split '/' a
 convertirAPathPattern :: String -> PathPattern
 convertirAPathPattern a = if head a == ':' then Capture (tail a) else Literal a
 
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+
 -- Ejercicio 3: Obtiene el valor registrado en una captura determinada. Se puede suponer que la captura está definida en el contexto.
+
+{-
+
+Es como buscar un valor en un diccionario..
+
+Iteramos las claves, si la encontramos devolvemos su valor respectivo.. caso contrario seguimos buscando en el resto de la lista..
+
+En caso de no encontrar nada devolvemos el string vacío
+
+-}
+
 type PathContext = [(String, String)]
 
 get :: String -> PathContext -> String
-get s = foldr (\x r -> if fst x == s  then snd x else r) ""
+get unNombre = foldr (\unaCaptura r -> if fst unaCaptura == unNombre  then snd unaCaptura else r) ""
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 -- Ejercicio 4: Dadas una ruta particionada y un patrón de URL, trata de aplicar el patrón a la ruta y devuelve, en caso de que
 --              la ruta sea un prefijo válido para el patrón, el resto de la ruta que no se haya llegado a consumir y el contexto capturado hasta el punto alcanzado.
 -- Se puede usar recursión explícita.
 
--- Just (["tpf"],[("nombreMateria","plp")]) ~=? matches (splitSlash "materias/plp/tpf") (pattern "materias/:nombreMateria")
---Just (["tpf"],[("nombreMateria","plp")]) ~=? ["materias","plp","alu", "007"] [Literal "materias",Capture "nombreMateria"]
+{-
 
--- ["alu", "007", "materias", "plp"] [Literal "materias",Capture "nombreMateria"]
---Just ([""],[("nombreMateria","poo")]) ~=?["materias","poo","hola","yerba","taragui"] [Literal "materias", Capture "nombreMateria", Literal "yerba", Capture "mate"]
--- [],[()]
+Ejemplos
+
+Just (["tpf"],[("nombreMateria","plp")]) ~=? matches (splitSlash "materias/plp/tpf") (pattern "materias/:nombreMateria")
+Just (["tpf"],[("nombreMateria","plp")]) ~=? ["materias","plp","alu", "007"] [Literal "materias",Capture "nombreMateria"]
+
+["alu", "007", "materias", "plp"] [Literal "materias",Capture "nombreMateria"]
+Just ([""],[("nombreMateria","poo")]) ~=?["materias","poo","hola","yerba","taragui"] [Literal "materias", Capture "nombreMateria", Literal "yerba", Capture "mate"]
+ [],[()]
+-}
+
+
 matcheaLiteral e (Literal s) (Capture _ ) = (e == s) 
 matcheaLiteral e (Capture s) _ = False
 
 captureName (Capture x) = x
+
 
 matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
 matches [] ps = Nothing
@@ -60,6 +118,10 @@ matches (s1:s2:ss) (p1:p2:ps) = if matcheaLiteral s1 p1 p2
 												Nothing -> ([],[])
 
 
+
+----------------------------------------------------------------------------------------------------------------------
+
+
 -- DSL para rutas
 route :: String -> a -> Routes a
 route s f = Route (pattern s) f
@@ -70,7 +132,17 @@ scope s r = Scope (pattern s) r
 many :: [Routes a] -> Routes a
 many l = Many l
 
+
+----------------------------------------------------------------------------------------------------------------------
+
+
 -- Ejercicio 5: Definir el fold para el tipo Routes f y su tipo. Se puede usar recursión explícita.
+{-
+
+
+-}
+
+
 foldRoutes :: ( [PathPattern] -> f -> b ) -> ( [PathPattern] -> b -> b ) -> ( [b]  -> b ) -> Routes f -> b
 foldRoutes f1 f2 f3 = g
 						  where
@@ -106,7 +178,10 @@ Nota: la siguiente función viene definida en el módulo Data.Maybe.
  f =<< m = case m of Nothing -> Nothing; Just x -> f x
 -}
 eval :: Routes a -> String -> Maybe (a, PathContext)
-eval r string =  map (\unPath -> matches [string] (pattern unPath)) (paths r)
+eval = undefined
+{-
+eval unaRuta string =  map (\unPath -> matches [string] (pattern unPath)) (paths unaRuta)
+-}
 
 
 -- Ejercicio 8: Similar a eval, pero aquí se espera que el handler sea una función que recibe como entrada el contexto 
