@@ -78,9 +78,6 @@ type PathContext = [(String, String)]
 get :: String -> PathContext -> String
 get unNombre = foldr (\unaCaptura r -> if fst unaCaptura == unNombre  then snd unaCaptura else r) ""
 
-
-
-
 ---------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -102,13 +99,13 @@ Just ([""],[("nombreMateria","poo")]) ~=?["materias","poo","hola","yerba","tarag
 
 
 matcheaLiteral e (Literal s) (Capture _ ) = (e == s) 
-matcheaLiteral e (Capture s) _ = False
+matcheaLiteral e _ _ = False
+
 
 captureName (Capture x) = x
 
 
 matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
-matches [] [] = Nothing
 matches [] ps = Nothing
 matches ss [] = Just (ss, [])
 matches (s1:s2:ss) (p1:p2:ps) = if matcheaLiteral s1 p1 p2 
@@ -198,12 +195,12 @@ En este caso es llamar a foldRoutes para cada ruta del many
 
 paths :: Routes a -> [String]
 paths = foldRoutes (\pathPatterns f -> (formarRutaCompleta pathPatterns):[] )
-				   (\ps res -> concat $ map (\unaRuta ->  adjuntarRutasProcesadas unaRuta res ) (rutasString ps)  )
+				   (\pths res -> map (\aRes -> if null aRes then  (formarRutaCompleta pths)
+				   											else (formarRutaCompleta pths) ++ "/" ++ aRes) res )
 				   (\res -> concat res )
-				   where adjuntarRutasProcesadas unaRuta pathsRes =  map (\unPath -> unaRuta ++ ('/':unPath) ) pathsRes
 
-formarRutaCompleta :: [PathPattern] -> [Char]
-formarRutaCompleta ps =  intercalate "/" $ map (\unPathPattern -> pathPatternToString unPathPattern) ps
+formarRutaCompleta :: [PathPattern] -> String
+formarRutaCompleta ps =  intercalate "/" $ rutasString ps
 
 rutasString = map pathPatternToString
 
@@ -221,15 +218,36 @@ Nota: la siguiente función viene definida en el módulo Data.Maybe.
 -}
 
 eval :: Routes a -> String -> Maybe (a, PathContext)
-eval = undefined
-{-
-eval unaRuta url = foldRoutes (\pathPatterns f -> matches (splitSlash paths) pathPatterns )
-				   			  (\ps res -> matches splitSlash paths ps  )
-				   			  (\res ->  )
+eval unaRuta url = head ( filter filtrarNothings ( map (\tuplaUrlHandler -> case matchPathConUrl (fst tuplaUrlHandler) url of
+															  Nothing -> Nothing
+															  Just (s, p) -> Just (snd tuplaUrlHandler, p)
+														)  
+												 	   ( generarPathsYHandlers unaRuta )
 
-splitSlash = split '/'
--}
+												 )
+ )
 
+
+
+
+sacarMaybe (Just a) = a
+
+filtrarNothings Nothing = False
+filtrarNothings (Just (a,b)) = True
+
+matchPathConUrl :: String -> String -> Maybe ([String], PathContext)
+matchPathConUrl path url = matches (split '/' url) (pattern path)
+
+
+
+
+generarPathsYHandlers :: Routes a -> [(String,a)]
+generarPathsYHandlers = foldRoutes (\pathPatterns f -> ( ((formarRutaCompleta pathPatterns)), f):[] )
+				   				   (\pths res -> map (\aRes ->  ( (formarRutaCompleta pths) ++ "/" ++ (fst aRes) , (snd aRes) ) ) res )
+				   				   (\res -> concat res )
+
+-- matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
+-- pattern :: String -> [PathPattern]
 ------------------------------------------------------------------------------------------------------------------------------------------
 
 
