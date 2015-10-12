@@ -57,10 +57,10 @@ testsPathContext = test [
 
 
 testsMatches = test [
-	matches (splitSlash "materias/plp/tpf") (pattern "materias/:nombreMateria") ~=? Just (["tpf"],[("nombreMateria","plp")]) ,
-	matches ["materia","plp","alu","007−1"] [ Literal "materia",Capture "nombre"] ~=? Just (["alu","007−1"] ,[("nombre","plp")]),
-	matches ["otra","ruta"] [ Literal "ayuda"] ~=? Nothing,
-	matches [ ] [ Literal "algo"] ~=? Nothing
+	Just (["tpf"],[("nombreMateria","plp")]) ~=? matches (splitSlash "materias/plp/tpf") (pattern "materias/:nombreMateria"),
+	Just (["alu","007−1"] ,[("nombre","plp")]) ~=? matches ["materia","plp","alu","007−1"] [ Literal "materia",Capture "nombre"],
+	Nothing ~=? matches ["otra","ruta"] [ Literal "ayuda"] ,
+	Nothing ~=? matches [ ] [ Literal "algo"] 
 	--,matches ["materia","plp","alu","007−1"] [ Literal "alu",Capture ":libreta"] ~=? Just ([""] ,[("alu","007-1")])
 	]
 

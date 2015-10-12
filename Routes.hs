@@ -29,15 +29,9 @@ split e = foldr (\x r -> if (x == e) then
    				 			[]:r
    				 		else
 						-- Si no es elemento de corte, entonces lo metemos al comienzo de la primer lista del resultado parcial..
-						-- Si el resultado parcial fuese una lista vacía entonces metemos directamente la lista [x] para empezar .. esto es más un caso borde
-						-- Si el resultado parcial ya tiene elementos entonces podemos pedirle su primer elemento y ahí agregamos x
-						 	
-   				 			if null r then [x]:r
-   				 			else
-								meterXAlComienzoDeLaPrimerLista x r
+   				 			meterXAlComienzoDeLaPrimerLista x r
 
    			 	) [[]]
- 
 
 meterXAlComienzoDeLaPrimerLista x r = (x:(head r)):(tail r)
 
@@ -98,23 +92,17 @@ Just ([""],[("nombreMateria","poo")]) ~=?["materias","poo","hola","yerba","tarag
 -}
 
 
-matcheaLiteral e (Literal s) (Capture _ ) = (e == s) 
-matcheaLiteral e _ _ = False
-
-
-captureName (Capture x) = x
-
-
 matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
 matches [] ps = Nothing
 matches ss [] = Just (ss, [])
-matches (s1:s2:ss) (p1:p2:ps) = if matcheaLiteral s1 p1 p2 
-							then Just ( (fst ( resMatches ss ps )), ((captureName p2) ,s2):(snd (resMatches ss ps))) 
-							else Just ( (fst ( resMatches (s1:s2:ss) ps )), (snd (resMatches ss (p2:ps))))
-							where resMatches ss ps = case matches ss ps of
-												Just (s, p) -> (s, p)
+matches (s:ss) (p:ps) = case p of
+						 Capture pat  -> 	Just ( fst ( resMatches ss ps ) ,  (pat ,s):(snd (resMatches ss ps) ) )
+						 Literal lit  -> 	if lit == s 
+											then Just ( fst ( resMatches ss ps ) ,  snd (resMatches ss ps) )
+											else Nothing
+						where resMatches ss ps = case matches ss ps of
+												Just (rs, rp) -> (rs, rp)
 												Nothing -> ([],[])
-matches (ss) (p:ps) = Nothing
 
 ----------------------------------------------------------------------------------------------------------------------
 
@@ -194,11 +182,11 @@ En este caso es llamar a foldRoutes para cada ruta del many
 -}
 
 paths :: Routes a -> [String]
-paths = foldRoutes (\pathPatterns f -> (formarRutaCompleta pathPatterns):[] )
-				   (\pths res -> map (\aRes -> if null aRes then  (formarRutaCompleta pths)
-				   											else (formarRutaCompleta pths) ++ "/" ++ aRes) res )
+paths = foldRoutes (\pathPatterns f -> (patternShow pathPatterns):[] )
+				   (\pths res -> map (\aRes -> if null aRes then  patternShow pths
+				   											else patternShow pths ++ "/" ++ aRes) res )
 				   (\res -> concat res )
-
+{-
 formarRutaCompleta :: [PathPattern] -> String
 formarRutaCompleta ps =  intercalate "/" $ rutasString ps
 
@@ -206,7 +194,7 @@ rutasString = map pathPatternToString
 
 pathPatternToString (Capture x) = ':':x
 pathPatternToString (Literal x) = x
-
+-}
 --------------------------------------------------------------------------------------------------------------------------------------
 
 -- Ejercicio 7: Evalúa un path con una definición de ruta y, en caso de haber coincidencia, obtiene el handler correspondiente 
@@ -218,6 +206,31 @@ Nota: la siguiente función viene definida en el módulo Data.Maybe.
 -}
 
 eval :: Routes a -> String -> Maybe (a, PathContext)
+eval unaRuta url = eval' unaRuta (splitSlash url) 
+
+eval' =	foldRoutes (\ruta  -> (\url -> case matches (getPathPattern ruta) url of 
+											Nothing -> Nothing
+											Just(noConsumido,pathContext) -> Just( getHandler ruta, pathContext)  ) )
+				   (\ruta r -> (\url -> case matches (getPathPattern ruta) url of 
+				    						Nothing -> Nothing
+				    						Just (noConsumido, pathContext) ->
+				    						case  r noConsumido of
+				    							Nothing -> Nothing
+				    							Just (noCon, pathC) -> Just ( noCon, pathContext ++ pathC) ))
+				   (\rutas r ->  (\url -> find notNothing (map r url)))
+
+getPathPattern (Route pps handler) = pps
+getPathPattern (Scope pps rutas) = pps
+
+getHandler (Route pps handler) = handler
+
+notNothing Nothing = False
+notNothing Just a = True
+
+{-
+
+
+eval :: Routes a -> String -> Maybe (a, PathContext)
 eval unaRuta url = head ( filter filtrarNothings ( map (\tuplaUrlHandler -> case matchPathConUrl (fst tuplaUrlHandler) url of
 															  Nothing -> Nothing
 															  Just (s, p) -> Just (snd tuplaUrlHandler, p)
@@ -226,9 +239,6 @@ eval unaRuta url = head ( filter filtrarNothings ( map (\tuplaUrlHandler -> case
 
 												 )
  )
-
-
-
 
 sacarMaybe (Just a) = a
 
@@ -242,12 +252,14 @@ matchPathConUrl path url = matches (split '/' url) (pattern path)
 
 
 generarPathsYHandlers :: Routes a -> [(String,a)]
-generarPathsYHandlers = foldRoutes (\pathPatterns f -> ( ((formarRutaCompleta pathPatterns)), f):[] )
-				   				   (\pths res -> map (\aRes ->  ( (formarRutaCompleta pths) ++ "/" ++ (fst aRes) , (snd aRes) ) ) res )
+generarPathsYHandlers = foldRoutes (\pathPatterns f -> ( ((patternShow pathPatterns)), f):[] )
+				   				   (\pths res -> map (\aRes ->  ( (patternShow pths) ++ "/" ++ (fst aRes) , (snd aRes) ) ) res )
 				   				   (\res -> concat res )
 
--- matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
--- pattern :: String -> [PathPattern]
+-}
+
+
+
 ------------------------------------------------------------------------------------------------------------------------------------------
 
 
