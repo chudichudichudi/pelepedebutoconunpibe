@@ -205,29 +205,34 @@ Nota: la siguiente función viene definida en el módulo Data.Maybe.
  f =<< m = case m of Nothing -> Nothing; Just x -> f x
 -}
 
-eval :: Routes a -> String -> Maybe (a, PathContext)
-eval unaRuta url = eval' unaRuta (splitSlash url) 
 
-eval' =	foldRoutes (\ruta  -> (\url -> case matches (getPathPattern ruta) url of 
+
+eval :: Routes a -> String -> Maybe (a, PathContext)
+eval unaRuta url = eval' unaRuta (split '/' url) 
+
+eval' =	foldRoutes (\pathPatterns handler -> (\url -> case matches url pathPatterns of 
 											Nothing -> Nothing
-											Just(noConsumido,pathContext) -> Just( getHandler ruta, pathContext)  ) )
-				   (\ruta r -> (\url -> case matches (getPathPattern ruta) url of 
+											Just(noConsumido,pathContext) -> Just( handler, pathContext)
+							  )
+				   )
+				   (\pathPatterns r -> (\url -> case matches url pathPatterns of 
 				    						Nothing -> Nothing
 				    						Just (noConsumido, pathContext) ->
-				    						case  r noConsumido of
-				    							Nothing -> Nothing
-				    							Just (noCon, pathC) -> Just ( noCon, pathContext ++ pathC) ))
-				   (\rutas r ->  (\url -> find notNothing (map r url)))
+				    							case  (r noConsumido) of
+				    								Nothing -> Nothing
+				    								Just (noCon, pathC) -> Just (noCon, pathContext ++ pathC) 
+				    			)
+				   )
+				   (\res -> (\url -> (map (\r -> r url) res) )  )
 
-getPathPattern (Route pps handler) = pps
-getPathPattern (Scope pps rutas) = pps
-
-getHandler (Route pps handler) = handler
-
+notNothing :: Maybe (a, PathContext) -> Bool
 notNothing Nothing = False
-notNothing Just a = True
+notNothing (Just(a, pc)) = True
 
 {-
+
+data Routes f = Route [PathPattern] f | Scope [PathPattern] (Routes f) | Many [Routes f] deriving Show
+
 
 
 eval :: Routes a -> String -> Maybe (a, PathContext)
