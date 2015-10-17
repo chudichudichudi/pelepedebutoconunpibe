@@ -38,8 +38,8 @@ testsPattern = test [
   splitSlash "" ~=? [""],
 	splitSlash "/" ~=? ["",""],
 	splitSlash "/foo" ~=? ["", "foo"],
-	--pattern "" ~=? [], 
-	pattern "" ~=? [Literal ""],
+	pattern "" ~=? [], 
+	--pattern "" ~=? [Literal ""],
 	pattern "/" ~=? [],
 	pattern "lit1/:cap1/:cap2/lit2/:cap3" ~=? [Literal "lit1", Capture "cap1", Capture "cap2", Literal "lit2", Capture "cap3"]
 	]
@@ -69,6 +69,7 @@ path0 = route "foo" 1
 path1 = scope "foo" (route "bar" 2)
 path2 = scope "foo" (route ":bar" 3)
 path3 = scope "" $ scope "" $ many [ scope "" $ route "foo" 1]
+path123 = scope "" $ route "foo" 123
 path555 = route "" 1
 path100 = scope "foo" $ many [ route "bar" 1, route ":pirulo" 1]
 path101 = scope "foo1" $ many [ route "bar" 1, many [ route ":pirulo" 1, scope "foo2" $ many [route "foo3" 1, route ":foo4" 1]]]
@@ -79,7 +80,8 @@ testsEvalCtxt = test [
 	Just (2, []) ~=? eval path1 "foo/bar",
 	isNothing (eval path1 "foo/bla") ~? "",
 	Just (3, [("bar", "bla")]) ~=? eval path2 "foo/bla",
-	Just (1, []) ~=? eval path3 "foo"
+	Just (1, []) ~=? eval path3 "foo",
+	Just (123, []) ~=? eval path123 "/foo"	
 	]
 
 path4 = many [
@@ -91,6 +93,12 @@ path4 = many [
     (route "ipsum" 5)
     ]))
   ]
+
+path444 = many [
+  (route "asd" 1),
+  (route "pepe" 12)
+  ]
+
 
 
 testsEval = test [

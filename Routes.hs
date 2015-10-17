@@ -204,12 +204,38 @@ Nota: la siguiente función viene definida en el módulo Data.Maybe.
  (=<<) :: (a->Maybe b)->Maybe a->Maybe b
  f =<< m = case m of Nothing -> Nothing; Just x -> f x
 -}
-
-
-
+{--}
 eval :: Routes a -> String -> Maybe (a, PathContext)
-eval unaRuta url = eval' unaRuta (split '/' url) 
+eval unaRuta url = eval2 unaRuta (split '/' url) 
 
+eval2 :: Routes a -> [String] -> Maybe (a, PathContext)
+eval2 =	foldRoutes (\pathPatterns handler -> (\url -> case matches url pathPatterns of 
+											Nothing -> Nothing
+											Just(noConsumido,pathContext) -> Just( handler, pathContext)
+							  )
+				   )
+				   (\pathPatterns r -> (\url -> case matches url pathPatterns of 
+				    						Nothing -> Nothing
+				    						Just (noConsumido, pathContext) ->
+				    							case  (r noConsumido) of
+				    								Nothing -> Nothing
+				    								Just (hand, pathC) -> Just (hand, pathContext ++ pathC) 
+				    			)
+				   )
+				   (\res -> (\url -> devolverNotNothing (map (\r ->  (r url) ) res ) )  )
+
+devolverNotNothing res = case filter notNothing res of
+						[] -> Nothing
+						(x:xs) -> x
+
+notNothing :: Maybe (a,PathContext) -> Bool
+notNothing (Just(a, pc)) = True
+notNothing Nothing = False
+
+
+				   
+{-
+eval' :: Routes a -> [String] -> Maybe (a, PathContext)
 eval' =	foldRoutes (\pathPatterns handler -> (\url -> case matches url pathPatterns of 
 											Nothing -> Nothing
 											Just(noConsumido,pathContext) -> Just( handler, pathContext)
@@ -220,14 +246,11 @@ eval' =	foldRoutes (\pathPatterns handler -> (\url -> case matches url pathPatte
 				    						Just (noConsumido, pathContext) ->
 				    							case  (r noConsumido) of
 				    								Nothing -> Nothing
-				    								Just (noCon, pathC) -> Just (noCon, pathContext ++ pathC) 
+				    								Just (hand, pathC) -> Just (hand, pathContext ++ pathC) 
 				    			)
 				   )
-				   (\res -> (\url -> (map (\r -> r url) res) )  )
-
-notNothing :: Maybe (a, PathContext) -> Bool
-notNothing Nothing = False
-notNothing (Just(a, pc)) = True
+				   (\res -> (\url ->find notNothing (map (\r -> r url ) res ) )  )
+-}
 
 {-
 
