@@ -46,7 +46,7 @@ meterXAlComienzoDeLaPrimerLista x r = (x:(head r)):(tail r)
 
 
 pattern :: String -> [PathPattern]
-pattern "" = [Literal ""]
+pattern "" = []
 pattern a = map convertirAPathPattern $ filter (\e -> e /= "") $ split '/' a
 
 convertirAPathPattern :: String -> PathPattern
@@ -214,10 +214,10 @@ eval2 =	foldRoutes (\pathPatterns handler -> (\url -> case matches url pathPatte
 											Just(noConsumido,pathContext) -> Just( handler, pathContext)
 							  )
 				   )
-				   (\pathPatterns r -> (\url -> case matches url pathPatterns of 
+				   (\pathPatterns res -> (\url -> case matches url pathPatterns of 
 				    						Nothing -> Nothing
 				    						Just (noConsumido, pathContext) ->
-				    							case  (r noConsumido) of
+				    							case  (res noConsumido) of
 				    								Nothing -> Nothing
 				    								Just (hand, pathC) -> Just (hand, pathContext ++ pathC) 
 				    			)
@@ -232,62 +232,6 @@ notNothing :: Maybe (a,PathContext) -> Bool
 notNothing (Just(a, pc)) = True
 notNothing Nothing = False
 
-
-				   
-{-
-eval' :: Routes a -> [String] -> Maybe (a, PathContext)
-eval' =	foldRoutes (\pathPatterns handler -> (\url -> case matches url pathPatterns of 
-											Nothing -> Nothing
-											Just(noConsumido,pathContext) -> Just( handler, pathContext)
-							  )
-				   )
-				   (\pathPatterns r -> (\url -> case matches url pathPatterns of 
-				    						Nothing -> Nothing
-				    						Just (noConsumido, pathContext) ->
-				    							case  (r noConsumido) of
-				    								Nothing -> Nothing
-				    								Just (hand, pathC) -> Just (hand, pathContext ++ pathC) 
-				    			)
-				   )
-				   (\res -> (\url ->find notNothing (map (\r -> r url ) res ) )  )
--}
-
-{-
-
-data Routes f = Route [PathPattern] f | Scope [PathPattern] (Routes f) | Many [Routes f] deriving Show
-
-
-
-eval :: Routes a -> String -> Maybe (a, PathContext)
-eval unaRuta url = head ( filter filtrarNothings ( map (\tuplaUrlHandler -> case matchPathConUrl (fst tuplaUrlHandler) url of
-															  Nothing -> Nothing
-															  Just (s, p) -> Just (snd tuplaUrlHandler, p)
-														)  
-												 	   ( generarPathsYHandlers unaRuta )
-
-												 )
- )
-
-sacarMaybe (Just a) = a
-
-filtrarNothings Nothing = False
-filtrarNothings (Just (a,b)) = True
-
-matchPathConUrl :: String -> String -> Maybe ([String], PathContext)
-matchPathConUrl path url = matches (split '/' url) (pattern path)
-
-
-
-
-generarPathsYHandlers :: Routes a -> [(String,a)]
-generarPathsYHandlers = foldRoutes (\pathPatterns f -> ( ((patternShow pathPatterns)), f):[] )
-				   				   (\pths res -> map (\aRes ->  ( (patternShow pths) ++ "/" ++ (fst aRes) , (snd aRes) ) ) res )
-				   				   (\res -> concat res )
-
--}
-
-
-
 ------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -295,7 +239,9 @@ generarPathsYHandlers = foldRoutes (\pathPatterns f -> ( ((patternShow pathPatte
 --              con las capturas, por lo que se devolverá el resultado de su aplicación, en caso de haber coincidencia.
 
 exec :: Routes (PathContext -> a) -> String -> Maybe a
-exec routes path = undefined
+exec routes path = case eval routes path of
+					Nothing -> Nothing
+					(Just(handler, pc)) -> Just(handler pc) 
 
 ------------------------------------------------------------------------------------------------------------------------------------------
 

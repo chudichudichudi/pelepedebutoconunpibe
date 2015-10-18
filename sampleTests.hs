@@ -38,9 +38,9 @@ testsPattern = test [
   splitSlash "" ~=? [""],
 	splitSlash "/" ~=? ["",""],
 	splitSlash "/foo" ~=? ["", "foo"],
-	pattern "" ~=? [], 
+	[] ~=? pattern "", 
 	--pattern "" ~=? [Literal ""],
-	pattern "/" ~=? [],
+	[] ~=? pattern "/", 
 	pattern "lit1/:cap1/:cap2/lit2/:cap3" ~=? [Literal "lit1", Capture "cap1", Capture "cap2", Literal "lit2", Capture "cap3"]
 	]
 
@@ -60,7 +60,8 @@ testsMatches = test [
 	Just (["tpf"],[("nombreMateria","plp")]) ~=? matches (splitSlash "materias/plp/tpf") (pattern "materias/:nombreMateria"),
 	Just (["alu","007−1"] ,[("nombre","plp")]) ~=? matches ["materia","plp","alu","007−1"] [ Literal "materia",Capture "nombre"],
 	Nothing ~=? matches ["otra","ruta"] [ Literal "ayuda"] ,
-	Nothing ~=? matches [ ] [ Literal "algo"] 
+	Nothing ~=? matches [ ] [ Literal "algo"],
+	Nothing ~=? matches (splitSlash "") [] 
 	--,matches ["materia","plp","alu","007−1"] [ Literal "alu",Capture ":libreta"] ~=? Just ([""] ,[("alu","007-1")])
 	]
 
@@ -99,10 +100,18 @@ path444 = many [
   (route "pepe" 12)
   ]
 
+path445 = many [
+  (scope "folder" (many [
+    (route "lorem" 4),
+    (route "ipsum" 5)
+    ])),
+    (route "" 1)
+  ]
 
 
 testsEval = test [
 		1 ~=? justEvalP4 "",
+		4 ~=? fst (fromJust (eval path445 "folder/lorem")) ,
 		4 ~=? justEvalP4 "folder/lorem"
 	]
 	where justEvalP4 s = fst (fromJust (eval path4 s))
