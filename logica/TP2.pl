@@ -6,8 +6,8 @@
 
 % listaNats(+LInf,+LSup,?Nats), que unifica la lista Nats con los naturales en el rango [LInf, LSup], o una lista vacía si LSup < LInf.
 
-listaNats(_,_,_):- fail.
-
+listaNats(LInf,LSup,Nats):- LInf > LSup, Nats = [].
+listaNats(LInf,LSup,Nats):- LInf2 is LInf + 1, listaNats(LInf2, LSup, Nats2), append([LInf],Nats2, Nats).
 
 %%% Ejercicio 2
 
