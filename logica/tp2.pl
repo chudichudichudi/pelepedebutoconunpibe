@@ -22,10 +22,12 @@ listaNats(LInf,LSup,Nats) :- numlist(LInf,LSup,Nats).
 % nPiezasDeCada(+Cant, +Tamaños, -Piezas), que instancia a Piezas con una lista que contiene 
 %  una cantidad Cant de cada tamaño en la lista Tamaños.
 % 
-:-dynamic pieza/2. 
+% ?- nPiezasDeCada(10,[1,2,3],X).
+% X = [pieza(1, 10), pieza(2, 10), pieza(3, 10)] ;
 
 nPiezasDeCada(_,[],[]).
-nPiezasDeCada(Cant,[X|T],P) :- nPiezasDeCada(Cant,T,Piezas2), asserta(pieza(X,Cant)), append([pieza(X,Cant)], Piezas2, P).
+%nPiezasDeCada(Cant,[X|T],P) :- nPiezasDeCada(Cant,T,Piezas2), asserta(pieza(X,Cant)), append([pieza(X,Cant)], Piezas2, P).
+nPiezasDeCada(Cant,[X|T],[pieza(X,Cant)|Piezas2]) :- nPiezasDeCada(Cant,T,Piezas2).
 
 %%% Ejercicio 3
 
@@ -34,12 +36,11 @@ nPiezasDeCada(Cant,[X|T],P) :- nPiezasDeCada(Cant,T,Piezas2), asserta(pieza(X,Ca
 
 % Cuenta la cantidad de apariciones de E en la lista L
 % cantidadDeApariciones(+E,+L,-N)
-%
+
 cantidadDeApariciones(E,L,N) :- subtract(L,[E],L2), length(L,Tamanio1), length(L2,Tamanio2), N is Tamanio1 - Tamanio2.
 
 resumenPiezas([], []).
-resumenPiezas(L, [X|Tail]) :-  X = pieza(T,N), cantidadDeApariciones(T,L,N), N > 0, subtract(L,[T],L2) ,resumenPiezas(L2, Tail).
-
+resumenPiezas(L, [pieza(T,N)|Tail]) :-cantidadDeApariciones(T,L,N), N > 0, subtract(L,[T],L2) ,resumenPiezas(L2, Tail).
 
 % ####################################
 % Enfoque naïve
@@ -51,44 +52,51 @@ resumenPiezas(L, [X|Tail]) :-  X = pieza(T,N), cantidadDeApariciones(T,L,N), N >
 %  cuyos valores suman Total. Aquí no se pide controlar que la cantidad de cada pieza
 %  esté acorde con la disponibilidad.
 
-
 % Calcula la suma de los elementos de una lista de piezas 
 % suma(+Lista,-Sol)
-% 
-suma([], 0).
-suma([X|T], Sum) :- X = pieza(Tam,Cant), suma(T,Sum2), Sum is Sum2 + Tam * Cant.
+% ?- suma([pieza(10,10), pieza(3,3)],X).
+% X = 109.
 
+suma([], 0).
+suma([pieza(Tam,Cant)|T], Sum) :- suma(T,Sum2), Sum is Sum2 + Tam * Cant.
+
+
+% 
+%tamanosDeLista([pieza(1,2),pieza(2,3),pieza(3,4)], X).
+tamanosDeLista([],[]).
+tamanosDeLista([pieza(X,_) |Tail ],[X | Sol]) :- tamanosDeLista(Tail, Sol).
 
 % Encuentra las listas que suman el Número instanciado
 % listaSuma(-Lista,+Numero)
 % 
 
-listaSuma([], 0).
-listaSuma([X|T], S) :- between(1,S,N), X is N, S1 is S - X, listaSuma(T,S1).
+% ?- listaSuma(X, 3).
+% X = [1, 1, 1] ;
+% X = [1, 2] ;
+% X = [2, 1] ;
+% X = [3] ;
 
+% listaSuma([], 0).
+% listaSuma([N|T], S) :- between(1,S,N), S1 is S - N, listaSuma(T,S1).
+% listaSuma([1,2,3,4], 10, Sol).
+
+listaSuma(_, 0, _).
+listaSuma(Tamanos, Total, Sol) :- member(N, Tamanos), S1 is Total - N, append(N, Sol, Sol1), listaSuma(Tamanos, S1, Sol1).
 
 % Decide si las piezas de Lista está en la lista de piezas
 % estanIncluidas(+Lista,+Piezas)
 % 
+% estanIncluidas([pieza(1,2),pieza(2,3),pieza(3,4)],[pieza(1,2),pieza(2,3),pieza(3,4)]).
+% true.
+% estanIncluidas([pieza(2,3),pieza(3,4), pieza(1,2)],[pieza(2,3),pieza(3,4)]).
+% false. 
 
 estanIncluidas([],_).
-estanIncluidas([X|T],Piezas) :- esPiezaDe(X,Piezas), estanIncluidas(T,Piezas). 
+estanIncluidas([pieza(X,T)|Tail],Piezas) :- member(pieza(X,T), Piezas), estanIncluidas(Tail,Piezas). 
 
+% generar(10, [pieza(1,10), pieza(2,10) , pieza(3,10) ,pieza(4,10)], Sol ).
 
-% Decide si la pieza está en Piezas
-% esPiezaDe(+Pieza,+Piezas)
-% 
-
-esPiezaDe(_,[]) :- fail. 
-esPiezaDe(X,[P|T]) :- P = pieza(T2,_), X == T2; esPiezaDe(X,T).
-
-
-
-
-generar(Total,Piezas,Sol) :- listaSuma(Soluciones,Total),
-							 estanIncluidas(Soluciones,Piezas),
-							 Sol = Soluciones.
-
+generar(Total,Piezas,Sol) :- tamanosDeLista(Piezas, Tamanos), listaSuma(Tamanos, Total, Sol).
 %%% Ejercicio 5 
 
 % cumpleLímite(+Piezas,+Solución) será verdadero cuando la cantidad
@@ -110,9 +118,8 @@ generar(Total,Piezas,Sol) :- listaSuma(Soluciones,Total),
 % true .
 
 cumpleLimite(_,[]).
-cumpleLimite(Piezas,Sol):-resumenPiezas(Sol, ResPiezas), member(X,Piezas),
-						  member(Y,ResPiezas), X = pieza(T1,N1),
-						  Y = pieza(T2,N2), T1 = T2, N2 =< N1.
+cumpleLimite(Piezas,Sol):-resumenPiezas(Sol, ResPiezas), member(pieza(T1,N1),Piezas),
+						  member(pieza(T2,N2),ResPiezas), T1 = T2, N2 =< N1.
 
 %%% Ejercicio 6
 
@@ -122,10 +129,9 @@ cumpleLimite(Piezas,Sol):-resumenPiezas(Sol, ResPiezas), member(X,Piezas),
 
 % Vamos viendo todas las listas que verifican sumar el Total y luego las
 % filtramos por las que cumplen el límite.
-
+% construir1(10, [pieza(1,10), pieza(2,10) , pieza(3,10) ,pieza(4,10)], Sol ).
 construir1(Total,Piezas,Solucion):- generar(Total,Piezas,Solucion),
 									cumpleLimite(Piezas, Solucion)	.
-
 
 % ####################################
 % Enfoque dinámico
@@ -173,7 +179,6 @@ construir2(Total,Piezas,Solucion):- generar2(Total,Piezas,Solucion),
 
 todosConstruir1(Total, Piezas, Soluciones, N):- setof( Sol, construir1(Total, Piezas, Sol), Soluciones), length(Soluciones,N) .
 
-
 %%% Ejercicio 9
 
 % todosConstruir2(+Total, +Piezas, -Soluciones, -N), donde Soluciones representa una lista con todas 
@@ -215,13 +220,9 @@ todosConstruir2(Total, Piezas, Soluciones, N):- setof( Sol, construir2(Total, Pi
 
 % Rota una lista a la derecha
 % rotatelist (+Lista,-Resultado)
-rotatelist([H|T], R) :- append(T, [H], R).
 
-tienePatron2(_,[]).
-tienePatron2([HP|Patron],[HL|Lista]) :- rotatelist([HP|Patron], R), tienePatron2(R, Lista), HP = HL.
-
-tienePatron(Patron,Lista) :- length(Patron, LP), length(Lista, LL),
-							 Q is mod(LL, LP), Q == 0, tienePatron2(Patron, Lista).
+tienePatron(_,[]).
+tienePatron(Patron,Lista) :- append(Patron, Resto, Lista),  tienePatron(Patron, Resto).
 
 
 construirConPatron(Total, Piezas, Patron, Solucion) :- todosConstruir1(Total, Piezas, Soluciones,_),
