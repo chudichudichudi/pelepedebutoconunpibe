@@ -36,6 +36,9 @@ nPiezasDeCada(Cant,[X|T],[pieza(X,Cant)|Piezas2]) :- nPiezasDeCada(Cant,T,Piezas
 
 % Cuenta la cantidad de apariciones de E en la lista L
 % cantidadDeApariciones(+E,+L,-N)
+% 
+% Pruebas:
+% resumenPiezas([1,1,2,2,3,3,4,4],S).
 
 cantidadDeApariciones(E,L,N) :- subtract(L,[E],L2), length(L,Tamanio1), length(L2,Tamanio2), N is Tamanio1 - Tamanio2.
 
@@ -80,19 +83,9 @@ tamanosDeLista([pieza(X,_) |Tail ],[X | Sol]) :- tamanosDeLista(Tail, Sol).
 % listaSuma([N|T], S) :- between(1,S,N), S1 is S - N, listaSuma(T,S1).
 % listaSuma([1,2,3,4], 10, Sol).
 
-listaSuma(_, 0, _).
-listaSuma(Tamanos, Total, Sol) :- member(N, Tamanos), S1 is Total - N, append(N, Sol, Sol1), listaSuma(Tamanos, S1, Sol1).
+listaSuma(_, 0, []).
+listaSuma(Tamanos, Total, [X|T]) :- member(N, Tamanos), X = N, S1 is Total - X, S1 >= 0, listaSuma(Tamanos, S1, T).
 
-% Decide si las piezas de Lista está en la lista de piezas
-% estanIncluidas(+Lista,+Piezas)
-% 
-% estanIncluidas([pieza(1,2),pieza(2,3),pieza(3,4)],[pieza(1,2),pieza(2,3),pieza(3,4)]).
-% true.
-% estanIncluidas([pieza(2,3),pieza(3,4), pieza(1,2)],[pieza(2,3),pieza(3,4)]).
-% false. 
-
-estanIncluidas([],_).
-estanIncluidas([pieza(X,T)|Tail],Piezas) :- member(pieza(X,T), Piezas), estanIncluidas(Tail,Piezas). 
 
 % generar(10, [pieza(1,10), pieza(2,10) , pieza(3,10) ,pieza(4,10)], Sol ).
 
@@ -111,15 +104,17 @@ generar(Total,Piezas,Sol) :- tamanosDeLista(Piezas, Tamanos), listaSuma(Tamanos,
 % false.
 % 
 % ?- cumpleLimite([pieza(2,3),pieza(4,3)],[2,2,2,4]).
-% true ;
 % true .
 % 
 % ?- cumpleLimite([pieza(2,3),pieza(4,3)],[2,2,2]).
 % true .
 
-cumpleLimite(_,[]).
-cumpleLimite(Piezas,Sol):-resumenPiezas(Sol, ResPiezas), member(pieza(T1,N1),Piezas),
-						  member(pieza(T2,N2),ResPiezas), T1 = T2, N2 =< N1.
+% cumpleLimite(_,[]).
+cumpleLimite(Piezas,Sol):-resumenPiezas(Sol, ResPiezas), cumple2(Piezas,ResPiezas).
+
+cumple2(_,[]).
+cumple2(Piezas, [pieza(T,X) | Tail ]) :- member(pieza(T,X1),Piezas),  X =< X1,
+										cumple2(Piezas, Tail). 
 
 %%% Ejercicio 6
 
@@ -131,7 +126,7 @@ cumpleLimite(Piezas,Sol):-resumenPiezas(Sol, ResPiezas), member(pieza(T1,N1),Pie
 % filtramos por las que cumplen el límite.
 % construir1(10, [pieza(1,10), pieza(2,10) , pieza(3,10) ,pieza(4,10)], Sol ).
 construir1(Total,Piezas,Solucion):- generar(Total,Piezas,Solucion),
-									cumpleLimite(Piezas, Solucion)	.
+									cumpleLimite(Piezas, Solucion).
 
 % ####################################
 % Enfoque dinámico
@@ -145,7 +140,7 @@ construir1(Total,Piezas,Solucion):- generar(Total,Piezas,Solucion),
 % soluciones aparezcan en el mismo orden entre construir1/3 y construir2/3,
 % pero sí, sean las mismas.
 
-:-dynamic listaSumaDinamica/2. 
+:-dynamic listaSumaDinamica/3. 
 
 % Encuentra las listas que suman el Número instanciado. Usamos asserta
 %  para evitar repetir cálculos.
@@ -153,18 +148,20 @@ construir1(Total,Piezas,Solucion):- generar(Total,Piezas,Solucion),
 % 
 
 
-listaSumaDinamica([],0).
-listaSumaDinamica([X|T], S) :- between(1,S,N), X is N, S1 is S - X, 
-							   listaSumaDinamica(T,S1),
-							   asserta(listaSumaDinamica([X|T],S)).
+listaSumaDinamica(_, 0, []).
+listaSumaDinamica(Tamanos, Total, [X|T]) :- member(N, Tamanos), X = N,
+										S1 is Total - X, S1 >= 0, 
+										listaSumaDinamica(Tamanos, S1, T).
+										%asserta( (listaSumaDinamica(Tamanos, S1, T):-!) ).
 
-generar2(Total,Piezas,Sol) :- retractall(lisDin(_,_)),
-							  listaSumaDinamica(Soluciones,Total),
-							  estanIncluidas(Soluciones,Piezas), 
-							  Sol = Soluciones.
 
-construir2(Total,Piezas,Solucion):- generar2(Total,Piezas,Solucion),
-									cumpleLimite(Piezas, Solucion).
+
+generar2(Total,Piezas,Sol) :- retractall(listaSumaDinamica(_,_,_)),
+								tamanosDeLista(Piezas, Tamanos),
+							  	listaSumaDinamica(Tamanos,Total,Sol),
+							  	cumpleLimite(Piezas, Sol).
+
+construir2(Total,Piezas,Solucion):- generar2(Total,Piezas,Solucion)	.
 
 % ####################################
 % Comparación de resultados y tiempos
@@ -177,14 +174,14 @@ construir2(Total,Piezas,Solucion):- generar2(Total,Piezas,Solucion),
 %  soluciones de longitud Total obtenidas con construir1/3, y N indica la
 % cantidad de soluciones totales.
 
-todosConstruir1(Total, Piezas, Soluciones, N):- setof( Sol, construir1(Total, Piezas, Sol), Soluciones), length(Soluciones,N) .
+todosConstruir1(Total, Piezas, Soluciones, N):- findall( Sol, construir1(Total, Piezas, Sol), Soluciones), length(Soluciones,N) .
 
 %%% Ejercicio 9
 
 % todosConstruir2(+Total, +Piezas, -Soluciones, -N), donde Soluciones representa una lista con todas 
 %  las soluciones de longitud Total obtenidas con construir2/3, y N indica la cantidad de soluciones totales.
 
-todosConstruir2(Total, Piezas, Soluciones, N):- setof( Sol, construir2(Total, Piezas, Sol), Soluciones), length(Soluciones,N) .
+todosConstruir2(Total, Piezas, Soluciones, N):- findall( Sol, construir2(Total, Piezas, Sol), Soluciones), length(Soluciones,N) .
 
 % ####################################
 % Patrones
