@@ -59,10 +59,16 @@ testsPathContext = test [
 testsMatches = test [
 	Just (["tpf"],[("nombreMateria","plp")]) ~=? matches (splitSlash "materias/plp/tpf") (pattern "materias/:nombreMateria"),
 	Just (["alu","007−1"] ,[("nombre","plp")]) ~=? matches ["materia","plp","alu","007−1"] [ Literal "materia",Capture "nombre"],
-	Nothing ~=? matches ["otra","ruta"] [ Literal "ayuda"] ,
+	Nothing ~=? matches ["otra","ruta"] [ Literal "ayuda"],
 	Nothing ~=? matches [ ] [ Literal "algo"],
-	Nothing ~=? matches (splitSlash "") [] 
-	--,matches ["materia","plp","alu","007−1"] [ Literal "alu",Capture ":libreta"] ~=? Just ([""] ,[("alu","007-1")])
+	Just([""],[]) ~=? matches (splitSlash "") [], 
+	Nothing ~=? matches ["materia","plp","alu","007−1"] [ Literal "alu",Capture ":libreta"],
+	Just(["tpf","fpt","jasquel"],[("nombreMateria","plp")]) ~=? matches (splitSlash "materias/plp/tpf/fpt/jasquel") (pattern "materias/:nombreMateria"),	
+	Just(["materias","plp","tpf","fpt","jasquel"],[]) ~=? matches (splitSlash "materias/plp/tpf/fpt/jasquel") (pattern ""),
+	Just(["jasquel"],[("nombreMateria","plp"),("fpt","fpt")]) ~=? matches (splitSlash "materias/plp/tpf/fpt/jasquel") (pattern "materias/:nombreMateria/tpf/:fpt"),	
+	Just([],[("nombreMateria","plp"),("fpt","fpt")]) ~=? matches (splitSlash "materias/plp/tpf/fpt/jasquel") (pattern "materias/:nombreMateria/tpf/:fpt/jasquel"),	
+	Just([],[("nombreMateria","plp"),("fpt","fpt"), ("poolog","prolog")]) ~=? matches (splitSlash "materias/plp/tpf/fpt/jasquel/prolog") (pattern "materias/:nombreMateria/tpf/:fpt/jasquel/:poolog")
+	
 	]
 
 
@@ -111,8 +117,16 @@ path445 = many [
 
 testsEval = test [
 		1 ~=? justEvalP4 "",
-		4 ~=? fst (fromJust (eval path445 "folder/lorem")) ,
-		4 ~=? justEvalP4 "folder/lorem"
+		2 ~=? fst (fromJust (eval path1 "foo/bar")),
+		3 ~=? fst (fromJust (eval path2 "foo/:bar")),
+		Just(3,[("bar","bar")]) ~=? eval path2 "foo/bar",
+		Just(12,[]) ~=? eval path444 "pepe",
+		Just(1,[]) ~=? eval path444 "asd",
+		Just(4,[]) ~=? eval path445 "folder/lorem",
+		Just(5,[]) ~=? eval path445 "folder/ipsum",
+		Just(1,[]) ~=? eval path445 ""
+		--4 ~=? fst (fromJust (eval path445 "folder/lorem")),
+		--4 ~=? justEvalP4 "folder/lorem"
 	]
 	where justEvalP4 s = fst (fromJust (eval path4 s))
 
