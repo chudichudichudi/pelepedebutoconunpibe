@@ -209,20 +209,28 @@ eval :: Routes a -> String -> Maybe (a, PathContext)
 eval unaRuta url = eval2 unaRuta (split '/' url) 
 
 eval2 :: Routes a -> [String] -> Maybe (a, PathContext)
-eval2 =	foldRoutes (\pathPatterns handler -> (\url -> case matches url pathPatterns of 
+eval2 =	foldRoutes 	
+		-- Caso [PathPattern] f
+		(\pathPatterns handler -> (\url -> case matches url pathPatterns of 
 											Nothing -> Nothing
 											Just(noConsumido,pathContext) -> Just( handler, pathContext)
-							  )
-				   )
-				   (\pathPatterns res -> (\url -> case matches url pathPatterns of 
+					)
+		)
+		
+		-- Caso [PatthPattern] (Route f)
+		(\pathPatterns res -> (\url -> case matches url pathPatterns of 
 				    						Nothing -> Nothing
 				    						Just (noConsumido, pathContext) ->
 				    							case  (res noConsumido) of
 				    								Nothing -> Nothing
 				    								Just (hand, pathC) -> Just (hand, pathContext ++ pathC) 
 				    			)
-				   )
-				   (\res -> (\url -> devolverNotNothing (map (\r ->  (r url) ) res ) )  )
+		)
+		
+		-- Caso Many [Route]
+
+		(\res -> (\url -> devolverNotNothing (map (\r ->  (r url) ) res ) )  )
+		
 
 devolverNotNothing res = case filter notNothing res of
 						[] -> Nothing

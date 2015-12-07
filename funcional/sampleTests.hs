@@ -117,8 +117,16 @@ path445 = many [
 
 testsEval = test [
 		1 ~=? justEvalP4 "",
-		4 ~=? fst (fromJust (eval path445 "folder/lorem")) ,
-		4 ~=? justEvalP4 "folder/lorem"
+		2 ~=? fst (fromJust (eval path1 "foo/bar")),
+		3 ~=? fst (fromJust (eval path2 "foo/:bar")),
+		Just(3,[("bar","bar")]) ~=? eval path2 "foo/bar",
+		Just(12,[]) ~=? eval path444 "pepe",
+		Just(1,[]) ~=? eval path444 "asd",
+		Just(4,[]) ~=? eval path445 "folder/lorem",
+		Just(5,[]) ~=? eval path445 "folder/ipsum",
+		Just(1,[]) ~=? eval path445 ""
+		--4 ~=? fst (fromJust (eval path445 "folder/lorem")),
+		--4 ~=? justEvalP4 "folder/lorem"
 	]
 	where justEvalP4 s = fst (fromJust (eval path4 s))
 
