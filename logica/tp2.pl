@@ -59,35 +59,47 @@ resumenPiezas(L, [pieza(T,N)|Tail]) :-cantidadDeApariciones(T,L,N), N > 0, subtr
 % suma(+Lista,-Sol)
 % ?- suma([pieza(10,10), pieza(3,3)],X).
 % X = 109.
+% suma([], 0).
+% suma([pieza(Tam,Cant)|T], Sum) :- suma(T,Sum2), Sum is Sum2 + Tam * Cant.
 
-suma([], 0).
-suma([pieza(Tam,Cant)|T], Sum) :- suma(T,Sum2), Sum is Sum2 + Tam * Cant.
+
+% Dada una lista, devuele una lista de tamanos
+% tamanosDeLista(+ListaDePiezas,-ListaDeTamanos)
+% tamanosDeLista([pieza(1,2),pieza(2,3),pieza(3,4)], X).
+% X = [1, 2, 3].
 
 
-% 
-%tamanosDeLista([pieza(1,2),pieza(2,3),pieza(3,4)], X).
 tamanosDeLista([],[]).
 tamanosDeLista([pieza(X,_) |Tail ],[X | Sol]) :- tamanosDeLista(Tail, Sol).
 
 % Encuentra las listas que suman el Número instanciado
-% listaSuma(-Lista,+Numero)
-% 
-
-% ?- listaSuma(X, 3).
-% X = [1, 1, 1] ;
-% X = [1, 2] ;
-% X = [2, 1] ;
-% X = [3] ;
-
-% listaSuma([], 0).
-% listaSuma([N|T], S) :- between(1,S,N), S1 is S - N, listaSuma(T,S1).
-% listaSuma([1,2,3,4], 10, Sol).
+% listaSuma(+Lista, +N, -Sol).
 
 listaSuma(_, 0, []).
 listaSuma(Tamanos, Total, [X|T]) :- member(N, Tamanos), X = N, S1 is Total - X, S1 >= 0, listaSuma(Tamanos, S1, T).
 
 
-% generar(10, [pieza(1,10), pieza(2,10) , pieza(3,10) ,pieza(4,10)], Sol ).
+% ?- listaSuma([1,2,3,4], 5, Sol).
+% Sol = [1, 1, 1, 1, 1] ;
+% Sol = [1, 1, 1, 2] ;
+% Sol = [1, 1, 2, 1] ;
+% Sol = [1, 1, 3] ;
+% Sol = [1, 2, 1, 1] ;
+% Sol = [1, 2, 2] ;
+% Sol = [1, 3, 1] ;
+% Sol = [1, 4] ;
+% Sol = [2, 1, 1, 1] ;
+% Sol = [2, 1, 2] ;
+% Sol = [2, 2, 1] ;
+% Sol = [2, 3] ;
+% Sol = [3, 1, 1] ;
+% Sol = [3, 2] ;
+% Sol = [4, 1] ;
+% false.
+
+
+
+% generar(5, [pieza(1,10), pieza(2,10) , pieza(3,10) ,pieza(4,10)], Sol ).
 
 generar(Total,Piezas,Sol) :- tamanosDeLista(Piezas, Tamanos), listaSuma(Tamanos, Total, Sol).
 %%% Ejercicio 5 
@@ -140,28 +152,39 @@ construir1(Total,Piezas,Solucion):- generar(Total,Piezas,Solucion),
 % soluciones aparezcan en el mismo orden entre construir1/3 y construir2/3,
 % pero sí, sean las mismas.
 
-:-dynamic listaSumaDinamica/3. 
+:-dynamic hecho/2.
 
 % Encuentra las listas que suman el Número instanciado. Usamos asserta
 %  para evitar repetir cálculos.
 % listaSumaDinamica(-Lista,+Numero)
-% 
+
+assertLD(Hecho):- \+( Hecho ),!, asserta(Hecho).
+assertLD(_).
+
+hecho(_, 0, []).
 
 
+% ?- listaSumaDinamica([1,2,3,4], 5, Sol).
 listaSumaDinamica(_, 0, []).
-listaSumaDinamica(Tamanos, Total, [X|T]) :- member(N, Tamanos), X = N,
+listaSumaDinamica(_, S1, T) :- hecho(S1, T).
+listaSumaDinamica(Tamanos, Total, [X|T]) :- \+(hecho(Total,[X|T])),
+										member(X, Tamanos),
 										S1 is Total - X, S1 >= 0, 
-										listaSumaDinamica(Tamanos, S1, T).
+										listaSumaDinamica(Tamanos, S1, T), 
+										assertLD(hecho(S1, T)).
 										%asserta( (listaSumaDinamica(Tamanos, S1, T):-!) ).
 
 
 
-generar2(Total,Piezas,Sol) :- retractall(listaSumaDinamica(_,_,_)),
+% generar2(5, [pieza(1,10), pieza(2,10) , pieza(3,10) ,pieza(4,10)], Sol ).
+generar2(Total,Piezas,Sol) :- retractall(hecho(_,_,_)),
 								tamanosDeLista(Piezas, Tamanos),
 							  	listaSumaDinamica(Tamanos,Total,Sol),
 							  	cumpleLimite(Piezas, Sol).
 
-construir2(Total,Piezas,Solucion):- generar2(Total,Piezas,Solucion)	.
+
+% construir2(10, [pieza(1,10), pieza(2,10) , pieza(3,10) ,pieza(4,10)], Sol ).
+construir2(Total,Piezas,Solucion):- generar2(Total,Piezas,Solucion).
 
 % ####################################
 % Comparación de resultados y tiempos
@@ -207,7 +230,6 @@ todosConstruir2(Total, Piezas, Soluciones, N):- findall( Sol, construir2(Total, 
 % false.
 % ?- tienePatron([A, 1, B, 2, C], [2,1,3,2,7]).
 % A = 2, B = 3, C = 7.
-
 % ?- tienePatron([A,B,C], Lista).
 % Lista = [] ;
 % Lista = [A, B, C] ;
