@@ -206,8 +206,9 @@ Nota: la siguiente función viene definida en el módulo Data.Maybe.
 -}
 {--}
 eval :: Routes a -> String -> Maybe (a, PathContext)
-eval unaRuta url = eval2 unaRuta (split '/' url) 
+eval unaRuta url = evalAux unaRuta (split '/' url) 
 
+{-
 eval2 :: Routes a -> [String] -> Maybe (a, PathContext)
 eval2 =	foldRoutes 	
 		-- Caso [PathPattern] f
@@ -230,8 +231,54 @@ eval2 =	foldRoutes
 		-- Caso Many [Route]
 
 		(\res -> (\url -> devolverNotNothing (map (\r ->  (r url) ) res ) )  )
-		
+-}		
 
+
+
+evalAux :: Routes a -> [String] -> Maybe (a, PathContext)
+evalAux =	snd encontrarMatchMasPreciso (filtrarNothings encontrarMatches)
+
+encontrarMatches :: Routes a -> [String] -> [ Maybe ([String], (a, PathContext) ) ]
+encontrarMatches = foldRoutes 	
+		-- Caso [PathPattern] f
+		(\pathPatterns handler -> 	(\url -> case matches url pathPatterns of 
+														Nothing -> [Nothing]
+														Just(noConsumido,pathContext) -> [Just(noConsumido, (handler, pathContext))]
+									)
+		)
+		
+		-- Caso [PatthPattern] (Route f)
+		(\pathPatterns res -> 	(\url -> case matches url pathPatterns of 
+				    							Nothing -> [Nothing]
+				    							Just (noConsumido, pathContext) ->
+				    									case  (res noConsumido) of
+				    										Nothing -> [Nothing]
+				    										Just (hand, pathC) -> [Just (noConsumido, (hand, pathContext ++ pathC))]:res 
+				    			)
+		)
+		
+		-- Caso Many [Route]
+
+		(\res -> (\url -> map (\r ->  r url) res )  )
+
+
+
+encontrarMatchMasPreciso :: [([String], (a, PathContext))] -> Maybe( [String] , (a,PathContext) )
+encontrarMatchMasPreciso lista = if null lista then Nothing else
+				foldr1 	(\unMatch res -> if (length (fst unMatch)) < (length (fst res)) then unMatch else res) 
+
+
+filtrarNothings :: [Maybe a] -> [a]
+filtrarNothings = foldr (\x res -> case x of 
+									Nothing -> res
+									Just(x) -> x:res
+						) 
+						[]
+
+
+
+{-
+filtrarNothings :: [Maybe a] -> [Maybe a]
 devolverNotNothing res = case filter notNothing res of
 						[] -> Nothing
 						(x:xs) -> x
@@ -239,6 +286,8 @@ devolverNotNothing res = case filter notNothing res of
 notNothing :: Maybe (a,PathContext) -> Bool
 notNothing (Just(a, pc)) = True
 notNothing Nothing = False
+
+-}
 
 ------------------------------------------------------------------------------------------------------------------------------------------
 

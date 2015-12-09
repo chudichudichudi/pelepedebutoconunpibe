@@ -57,6 +57,8 @@ testsPathContext = test [
 
 
 testsMatches = test [
+
+	Nothing ~=? matches [""] (pattern "lala"),
 	Just (["tpf"],[("nombreMateria","plp")]) ~=? matches (splitSlash "materias/plp/tpf") (pattern "materias/:nombreMateria"),
 	Just (["alu","007−1"] ,[("nombre","plp")]) ~=? matches ["materia","plp","alu","007−1"] [ Literal "materia",Capture "nombre"],
 	Nothing ~=? matches ["otra","ruta"] [ Literal "ayuda"],
@@ -115,8 +117,22 @@ path445 = many [
   ]
 
 
+path446 = many [(route "lorem" 4),(route "lorem" 5)]
+
+
+rutasFacultad2 = many [
+  route "ayuda"        "ver ayuda",
+  scope "materia/:nombre/alu/:lu" $ many [
+    route "inscribir"   "inscribe alumno",
+    route "aprobar"     "aprueba alumno"
+  ],
+  route "alu/:lu/aprobadas"  "ver materias aprobadas por alumno"
+  ]
+
+
 testsEval = test [
 		1 ~=? justEvalP4 "",
+		--2 ~=? justEvalP4 "lo/rem",
 		2 ~=? fst (fromJust (eval path1 "foo/bar")),
 		3 ~=? fst (fromJust (eval path2 "foo/:bar")),
 		Just(3,[("bar","bar")]) ~=? eval path2 "foo/bar",
@@ -124,7 +140,10 @@ testsEval = test [
 		Just(1,[]) ~=? eval path444 "asd",
 		Just(4,[]) ~=? eval path445 "folder/lorem",
 		Just(5,[]) ~=? eval path445 "folder/ipsum",
-		Just(1,[]) ~=? eval path445 ""
+		Just(1,[]) ~=? eval path445 "",
+		Nothing ~=? eval path555 "lal"
+		
+		--Just ("ver materias aprobadas por alumno",[("lu","007-01")]) ~=? eval rutasFacultad "alu/007-01/aprobadas"
 		--4 ~=? fst (fromJust (eval path445 "folder/lorem")),
 		--4 ~=? justEvalP4 "folder/lorem"
 	]
