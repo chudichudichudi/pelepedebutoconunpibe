@@ -79,18 +79,6 @@ get unNombre = foldr (\unaCaptura r -> if fst unaCaptura == unNombre  then snd u
 --              la ruta sea un prefijo válido para el patrón, el resto de la ruta que no se haya llegado a consumir y el contexto capturado hasta el punto alcanzado.
 -- Se puede usar recursión explícita.
 
-{-
-
-Ejemplos
-
-Just (["tpf"],[("nombreMateria","plp")]) ~=? matches (splitSlash "materias/plp/tpf") (pattern "materias/:nombreMateria")
-Just (["tpf"],[("nombreMateria","plp")]) ~=? ["materias","plp","alu", "007"] [Literal "materias",Capture "nombreMateria"]
-
-["alu", "007", "materias", "plp"] [Literal "materias",Capture "nombreMateria"]
-Just ([""],[("nombreMateria","poo")]) ~=?["materias","poo","hola","yerba","taragui"] [Literal "materias", Capture "nombreMateria", Literal "yerba", Capture "mate"]
- [],[()]
--}
-
 
 matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
 matches a b = if length a < length b then Nothing else matchesAux a b
