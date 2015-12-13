@@ -93,10 +93,12 @@ Just ([""],[("nombreMateria","poo")]) ~=?["materias","poo","hola","yerba","tarag
 
 
 matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
-matches [] [] = Just([],[])
-matches [] (p:ps) = Nothing
-matches ss [] = Just (ss, [])
-matches (s:ss) (p:ps) = case p of
+matches a b = if length a < length b then Nothing else matchesAux a b
+
+matchesAux :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
+matchesAux [] [] = Just([],[])
+matchesAux ss [] = Just (ss, [])
+matchesAux (s:ss) (p:ps) = case p of
 						 Capture pat  -> 	Just ( fst ( resMatches ss ps ) ,  (pat ,s):(snd (resMatches ss ps) ) )
 						 Literal lit  -> 	if lit == "" then
 												( if s == "" then Just( fst ( resMatches ss ps ) ,  snd (resMatches ss ps) )
@@ -107,7 +109,7 @@ matches (s:ss) (p:ps) = case p of
 														else Nothing
 												)
 											
-						where resMatches ss ps = case matches ss ps of
+						where resMatches ss ps = case matchesAux ss ps of
 												Just (rs, rp) -> (rs, rp)
 												Nothing -> ([],[])
 

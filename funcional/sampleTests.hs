@@ -124,15 +124,30 @@ testsEval = test [
 		Just ("ver materias aprobadas por alumno" ,[("lu","007-01")]) ~=? eval rutasFacultad "alu/007-01/aprobadas",
 		Just ("aprueba alumno" ,[("nombre","plp"),("lu","007-01")]) ~=? eval rutasFacultad "materia/plp/alu/007-01/aprobar",
 		Nothing ~=? eval rutasFacultad "alu/007-01",
+		Nothing ~=?	eval (route "alu/:lu/aprobadas"  "ver materias aprobadas por alumno") "alu/007-01",
 		Just(1,[]) ~=? eval (route "" 1) "",
 		1 ~=? justEvalP4 "",
-		4 ~=? justEvalP4 "folder/lorem"
+		4 ~=? justEvalP4 "folder/lorem",
+		5 ~=? justEvalP4 "folder/ipsum"
 		
 		
 	]
 	where justEvalP4 s = fst (fromJust (eval path4 s))
 
 path410 = wrap (+10) path4
+
+
+ {-
+ rutasFacultad = many [
+  route ""             "ver inicio",
+  route "ayuda"        "ver ayuda",
+  scope "materia/:nombre/alu/:lu" $ many [
+    route "inscribir"   "inscribe alumno",
+    route "aprobar"     "aprueba alumno"
+  ],
+  route "alu/:lu/aprobadas"  "ver materias aprobadas por alumno"
+  ]
+ -}
 
 testsEvalWrap = test [
 		14 ~=? justEvalP410 "folder/lorem"
