@@ -46,7 +46,7 @@ meterXAlComienzoDeLaPrimerLista x r = (x:(head r)):(tail r)
 
 
 pattern :: String -> [PathPattern]
-pattern "" = []
+pattern "" = [Literal ""]
 pattern a = map convertirAPathPattern $ filter (\e -> e /= "") $ split '/' a
 
 convertirAPathPattern :: String -> PathPattern
@@ -93,13 +93,20 @@ Just ([""],[("nombreMateria","poo")]) ~=?["materias","poo","hola","yerba","tarag
 
 
 matches :: [String] -> [PathPattern] -> Maybe ( [String], PathContext )
-matches [] ps = Nothing
+matches [] [] = Just([],[])
+matches [] (p:ps) = Nothing
 matches ss [] = Just (ss, [])
 matches (s:ss) (p:ps) = case p of
 						 Capture pat  -> 	Just ( fst ( resMatches ss ps ) ,  (pat ,s):(snd (resMatches ss ps) ) )
-						 Literal lit  -> 	if lit == s 
-											then Just ( fst ( resMatches ss ps ) ,  snd (resMatches ss ps) )
-											else Nothing
+						 Literal lit  -> 	if lit == "" then
+												( if s == "" then Just( fst ( resMatches ss ps ) ,  snd (resMatches ss ps) )
+													else Just ( fst ( resMatches (s:ss) ps ) ,  snd (resMatches (s:ss) ps) )
+												)
+											else(
+													if lit == s then Just ( fst ( resMatches ss ps ) ,  snd (resMatches ss ps) )
+														else Nothing
+												)
+											
 						where resMatches ss ps = case matches ss ps of
 												Just (rs, rp) -> (rs, rp)
 												Nothing -> ([],[])
@@ -186,15 +193,7 @@ paths = foldRoutes (\pathPatterns f -> (patternShow pathPatterns):[] )
 				   (\pths res -> map (\aRes -> if null aRes then  patternShow pths
 				   											else patternShow pths ++ "/" ++ aRes) res )
 				   (\res -> concat res )
-{-
-formarRutaCompleta :: [PathPattern] -> String
-formarRutaCompleta ps =  intercalate "/" $ rutasString ps
 
-rutasString = map pathPatternToString
-
-pathPatternToString (Capture x) = ':':x
-pathPatternToString (Literal x) = x
--}
 --------------------------------------------------------------------------------------------------------------------------------------
 
 -- Ejercicio 7: Evalúa un path con una definición de ruta y, en caso de haber coincidencia, obtiene el handler correspondiente 
@@ -208,87 +207,38 @@ Nota: la siguiente función viene definida en el módulo Data.Maybe.
 eval :: Routes a -> String -> Maybe (a, PathContext)
 eval unaRuta url = evalAux unaRuta (split '/' url) 
 
-{-
-eval2 :: Routes a -> [String] -> Maybe (a, PathContext)
-eval2 =	foldRoutes 	
-		-- Caso [PathPattern] f
-		(\pathPatterns handler -> (\url -> case matches url pathPatterns of 
-											Nothing -> Nothing
-											Just(noConsumido,pathContext) -> Just( handler, pathContext)
-					)
-		)
-		
-		-- Caso [PatthPattern] (Route f)
-		(\pathPatterns res -> (\url -> case matches url pathPatterns of 
-				    						Nothing -> Nothing
-				    						Just (noConsumido, pathContext) ->
-				    							case  (res noConsumido) of
-				    								Nothing -> Nothing
-				    								Just (hand, pathC) -> Just (hand, pathContext ++ pathC) 
-				    			)
-		)
-		
-		-- Caso Many [Route]
-
-		(\res -> (\url -> devolverNotNothing (map (\r ->  (r url) ) res ) )  )
--}		
-
-
-
 evalAux :: Routes a -> [String] -> Maybe (a, PathContext)
-evalAux =	snd encontrarMatchMasPreciso (filtrarNothings encontrarMatches)
-
-encontrarMatches :: Routes a -> [String] -> [ Maybe ([String], (a, PathContext) ) ]
-encontrarMatches = foldRoutes 	
+evalAux = foldRoutes 	
 		-- Caso [PathPattern] f
 		(\pathPatterns handler -> 	(\url -> case matches url pathPatterns of 
-														Nothing -> [Nothing]
-														Just(noConsumido,pathContext) -> [Just(noConsumido, (handler, pathContext))]
+														Nothing -> Nothing
+														Just(noConsumido,pathContext) -> if null noConsumido then Just(handler,pathContext) else Nothing
 									)
 		)
 		
 		-- Caso [PatthPattern] (Route f)
 		(\pathPatterns res -> 	(\url -> case matches url pathPatterns of 
-				    							Nothing -> [Nothing]
+				    							Nothing -> Nothing
 				    							Just (noConsumido, pathContext) ->
 				    									case  (res noConsumido) of
-				    										Nothing -> [Nothing]
-				    										Just (hand, pathC) -> [Just (noConsumido, (hand, pathContext ++ pathC))]:res 
+				    										Nothing -> Nothing
+				    										Just (handRes, pathC) -> Just(handRes, pathContext ++ pathC)
 				    			)
 		)
 		
 		-- Caso Many [Route]
 
-		(\res -> (\url -> map (\r ->  r url) res )  )
+		(\res ->(\url ->  devolverPrimerResultadoValido  (map (\r ->  r url) res ))  )
 
 
+devolverPrimerResultadoValido :: [Maybe a] -> Maybe a
+devolverPrimerResultadoValido = foldr (\x res -> case x of
+													Nothing -> res
+													Just(x) -> Just(x)
+										)
+										Nothing
 
-encontrarMatchMasPreciso :: [([String], (a, PathContext))] -> Maybe( [String] , (a,PathContext) )
-encontrarMatchMasPreciso lista = if null lista then Nothing else
-				foldr1 	(\unMatch res -> if (length (fst unMatch)) < (length (fst res)) then unMatch else res) 
-
-
-filtrarNothings :: [Maybe a] -> [a]
-filtrarNothings = foldr (\x res -> case x of 
-									Nothing -> res
-									Just(x) -> x:res
-						) 
-						[]
-
-
-
-{-
-filtrarNothings :: [Maybe a] -> [Maybe a]
-devolverNotNothing res = case filter notNothing res of
-						[] -> Nothing
-						(x:xs) -> x
-
-notNothing :: Maybe (a,PathContext) -> Bool
-notNothing (Just(a, pc)) = True
-notNothing Nothing = False
-
--}
-
+		
 ------------------------------------------------------------------------------------------------------------------------------------------
 
 

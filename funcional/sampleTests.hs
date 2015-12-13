@@ -38,8 +38,7 @@ testsPattern = test [
   splitSlash "" ~=? [""],
 	splitSlash "/" ~=? ["",""],
 	splitSlash "/foo" ~=? ["", "foo"],
-	[] ~=? pattern "", 
-	--pattern "" ~=? [Literal ""],
+	[Literal ""] ~=? pattern "", 
 	[] ~=? pattern "/", 
 	pattern "lit1/:cap1/:cap2/lit2/:cap3" ~=? [Literal "lit1", Capture "cap1", Capture "cap2", Literal "lit2", Capture "cap3"]
 	]
@@ -93,15 +92,6 @@ testsEvalCtxt = test [
 	Just (123, []) ~=? eval path123 "/foo"	
 	]
 
-path4 = many [
-  (route "" 1),
-  (route "lo/rem" 2),
-  (route "ipsum" 3),
-  (scope "folder" (many [
-    (route "lorem" 4),
-    (route "ipsum" 5)
-    ]))
-  ]
 
 path444 = many [
   (route "asd" 1),
@@ -119,33 +109,26 @@ path445 = many [
 
 path446 = many [(route "lorem" 4),(route "lorem" 5)]
 
-
-rutasFacultad2 = many [
-  route "ayuda"        "ver ayuda",
-  scope "materia/:nombre/alu/:lu" $ many [
-    route "inscribir"   "inscribe alumno",
-    route "aprobar"     "aprueba alumno"
-  ],
-  route "alu/:lu/aprobadas"  "ver materias aprobadas por alumno"
+path4 = many [
+  (route "" 1),
+  (route "lo/rem" 2),
+  (route "ipsum" 3),
+  (scope "folder" (many [
+    (route "lorem" 4),
+    (route "ipsum" 5)
+    ]))
   ]
 
-
+ 
 testsEval = test [
+		Just ("ver materias aprobadas por alumno" ,[("lu","007-01")]) ~=? eval rutasFacultad "alu/007-01/aprobadas",
+		Just ("aprueba alumno" ,[("nombre","plp"),("lu","007-01")]) ~=? eval rutasFacultad "materia/plp/alu/007-01/aprobar",
+		Nothing ~=? eval rutasFacultad "alu/007-01",
+		Just(1,[]) ~=? eval (route "" 1) "",
 		1 ~=? justEvalP4 "",
-		--2 ~=? justEvalP4 "lo/rem",
-		2 ~=? fst (fromJust (eval path1 "foo/bar")),
-		3 ~=? fst (fromJust (eval path2 "foo/:bar")),
-		Just(3,[("bar","bar")]) ~=? eval path2 "foo/bar",
-		Just(12,[]) ~=? eval path444 "pepe",
-		Just(1,[]) ~=? eval path444 "asd",
-		Just(4,[]) ~=? eval path445 "folder/lorem",
-		Just(5,[]) ~=? eval path445 "folder/ipsum",
-		Just(1,[]) ~=? eval path445 "",
-		Nothing ~=? eval path555 "lal"
+		4 ~=? justEvalP4 "folder/lorem"
 		
-		--Just ("ver materias aprobadas por alumno",[("lu","007-01")]) ~=? eval rutasFacultad "alu/007-01/aprobadas"
-		--4 ~=? fst (fromJust (eval path445 "folder/lorem")),
-		--4 ~=? justEvalP4 "folder/lorem"
+		
 	]
 	where justEvalP4 s = fst (fromJust (eval path4 s))
 
