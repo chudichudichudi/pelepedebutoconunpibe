@@ -26,7 +26,6 @@ listaNats(LInf,LSup,Nats) :- numlist(LInf,LSup,Nats).
 % X = [pieza(1, 10), pieza(2, 10), pieza(3, 10)] ;
 
 nPiezasDeCada(_,[],[]).
-%nPiezasDeCada(Cant,[X|T],P) :- nPiezasDeCada(Cant,T,Piezas2), asserta(pieza(X,Cant)), append([pieza(X,Cant)], Piezas2, P).
 nPiezasDeCada(Cant,[X|T],[pieza(X,Cant)|Piezas2]) :- nPiezasDeCada(Cant,T,Piezas2).
 
 %%% Ejercicio 3
@@ -40,10 +39,10 @@ nPiezasDeCada(Cant,[X|T],[pieza(X,Cant)|Piezas2]) :- nPiezasDeCada(Cant,T,Piezas
 % Pruebas:
 % resumenPiezas([1,1,2,2,3,3,4,4],S).
 
-cantidadDeApariciones(E,L,N) :- subtract(L,[E],L2), length(L,Tamanio1), length(L2,Tamanio2), N is Tamanio1 - Tamanio2.
-
 resumenPiezas([], []).
-resumenPiezas(L, [pieza(T,N)|Tail]) :-cantidadDeApariciones(T,L,N), N > 0, subtract(L,[T],L2) ,resumenPiezas(L2, Tail).
+resumenPiezas([T|L], [pieza(T,N)|Tail]) :-subtract(L,[T],L2), 
+										length(L2, Lengh2), length(L, Lengh1),
+										N is Lengh1 - Lengh2,resumenPiezas(L2, Tail).
 
 % ####################################
 % Enfoque naïve
@@ -55,29 +54,13 @@ resumenPiezas(L, [pieza(T,N)|Tail]) :-cantidadDeApariciones(T,L,N), N > 0, subtr
 %  cuyos valores suman Total. Aquí no se pide controlar que la cantidad de cada pieza
 %  esté acorde con la disponibilidad.
 
-% Calcula la suma de los elementos de una lista de piezas 
-% suma(+Lista,-Sol)
-% ?- suma([pieza(10,10), pieza(3,3)],X).
-% X = 109.
-% suma([], 0).
-% suma([pieza(Tam,Cant)|T], Sum) :- suma(T,Sum2), Sum is Sum2 + Tam * Cant.
-
-
-% Dada una lista, devuele una lista de tamanos
-% tamanosDeLista(+ListaDePiezas,-ListaDeTamanos)
-% tamanosDeLista([pieza(1,2),pieza(2,3),pieza(3,4)], X).
-% X = [1, 2, 3].
-
-
-tamanosDeLista([],[]).
-tamanosDeLista([pieza(X,_) |Tail ],[X | Sol]) :- tamanosDeLista(Tail, Sol).
-
 % Encuentra las listas que suman el Número instanciado
 % listaSuma(+Lista, +N, -Sol).
 
 listaSuma(_, 0, []).
-listaSuma(Tamanos, Total, [X|T]) :- member(N, Tamanos), X = N, S1 is Total - X, S1 >= 0, listaSuma(Tamanos, S1, T).
-
+listaSuma(Piezas, Total, [X|T]) :- member(pieza(X,C), Piezas), C > 0, append(I,[pieza(X,C)|D], Piezas),
+									C1 is C - 1, append(I,[pieza(X,C1)|D], Piezas2),
+									S1 is Total - X, S1 >= 0, listaSuma(Piezas2, S1, T).
 
 % ?- listaSuma([1,2,3,4], 5, Sol).
 % Sol = [1, 1, 1, 1, 1] ;
@@ -97,11 +80,9 @@ listaSuma(Tamanos, Total, [X|T]) :- member(N, Tamanos), X = N, S1 is Total - X, 
 % Sol = [4, 1] ;
 % false.
 
-
-
 % generar(5, [pieza(1,10), pieza(2,10) , pieza(3,10) ,pieza(4,10)], Sol ).
+generar(Total,Piezas,Sol) :-listaSuma(Piezas, Total, Sol), cumpleLimite(Piezas, Sol).
 
-generar(Total,Piezas,Sol) :- tamanosDeLista(Piezas, Tamanos), listaSuma(Tamanos, Total, Sol).
 %%% Ejercicio 5 
 
 % cumpleLímite(+Piezas,+Solución) será verdadero cuando la cantidad
@@ -126,7 +107,7 @@ cumpleLimite(Piezas,Sol):-resumenPiezas(Sol, ResPiezas), cumple2(Piezas,ResPieza
 
 cumple2(_,[]).
 cumple2(Piezas, [pieza(T,X) | Tail ]) :- member(pieza(T,X1),Piezas),  X =< X1,
-										cumple2(Piezas, Tail). 
+										cumple2(Piezas, Tail).
 
 %%% Ejercicio 6
 
@@ -152,7 +133,7 @@ construir1(Total,Piezas,Solucion):- generar(Total,Piezas,Solucion),
 % soluciones aparezcan en el mismo orden entre construir1/3 y construir2/3,
 % pero sí, sean las mismas.
 
-:-dynamic hecho/2.
+:-dynamic hecho/3.
 
 % Encuentra las listas que suman el Número instanciado. Usamos asserta
 %  para evitar repetir cálculos.
@@ -161,25 +142,23 @@ construir1(Total,Piezas,Solucion):- generar(Total,Piezas,Solucion),
 assertLD(Hecho):- \+( Hecho ),!, asserta(Hecho).
 assertLD(_).
 
-hecho(_, 0, []).
+listaSuma2(P, S1, T) :- hecho(P, S1, T).
+listaSuma2(Piezas, Total, [X|T]) :- \+(hecho(Piezas, Total,[X|T])),
+									member(pieza(X,C), Piezas), C > 0, append(I,[pieza(X,C)|D], Piezas),
+									C1 is C - 1, C1 >0, append(I,[pieza(X,C1)|D], Piezas2),
+									S1 is Total - X, S1 >= 0, listaSuma2(Piezas2, S1, T),
+									assertLD(hecho(Piezas, S1, T)).
 
-
-% ?- listaSumaDinamica([1,2,3,4], 5, Sol).
-listaSumaDinamica(_, 0, []).
-listaSumaDinamica(_, S1, T) :- hecho(S1, T).
-listaSumaDinamica(Tamanos, Total, [X|T]) :- \+(hecho(Total,[X|T])),
-										member(X, Tamanos),
-										S1 is Total - X, S1 >= 0, 
-										listaSumaDinamica(Tamanos, S1, T), 
-										assertLD(hecho(S1, T)).
-										%asserta( (listaSumaDinamica(Tamanos, S1, T):-!) ).
-
+listaSuma2(Piezas, Total, [X|T]) :- \+(hecho(Piezas, Total,[X|T])),
+									member(pieza(X,C), Piezas), C > 0, append(I,[pieza(X,C)|D], Piezas),
+									C1 is C - 1, C1 = 0, append(I,D, Piezas2),
+									S1 is Total - X, S1 >= 0, listaSuma2(Piezas2, S1, T),
+									assertLD(hecho(Piezas, S1, T)).
 
 
 % generar2(5, [pieza(1,10), pieza(2,10) , pieza(3,10) ,pieza(4,10)], Sol ).
-generar2(Total,Piezas,Sol) :- retractall(hecho(_,_,_)),
-								tamanosDeLista(Piezas, Tamanos),
-							  	listaSumaDinamica(Tamanos,Total,Sol),
+generar2(Total,Piezas,Sol) :- retractall(hecho(_,_,_)), asserta(hecho(_,0,[])),
+							  	listaSuma2(Piezas,Total,Sol),
 							  	cumpleLimite(Piezas, Sol).
 
 
@@ -205,6 +184,22 @@ todosConstruir1(Total, Piezas, Soluciones, N):- findall( Sol, construir1(Total, 
 %  las soluciones de longitud Total obtenidas con construir2/3, y N indica la cantidad de soluciones totales.
 
 todosConstruir2(Total, Piezas, Soluciones, N):- findall( Sol, construir2(Total, Piezas, Sol), Soluciones), length(Soluciones,N) .
+
+
+% ##########################################
+% Resultados Compracion de Tiempos: 
+
+% ?- time(todosConstruir1(12, [pieza(1,10), pieza(2,10) , pieza(3,10) ,pieza(4,10)], Sol, L )).
+% 474,464 inferences, 0.047 CPU in 0.047 seconds (100% CPU, 10068025 Lips)
+% Sol = [[1, 1, 1, 1, 1, 1, 1, 1|...], [1, 1, 1, 1, 1, 1, 1|...], [1, 1, 1, 1, 1, 1|...], [1, 1, 1, 1, 1|...], [1, 1, 1, 1|...], [1, 1, 1|...], [1, 1|...], [1|...], [...|...]|...],
+% L = 1489.
+
+% ?- time(todosConstruir2(12, [pieza(1,10), pieza(2,10) , pieza(3,10) ,pieza(4,10)], Sol, L )).
+% 460,850 inferences, 1.390 CPU in 1.390 seconds (100% CPU, 331435 Lips)
+% Sol = [[1, 1, 1, 1, 1, 1, 1, 1|...], [1, 1, 1, 1, 1, 1, 1|...], [1, 1, 1, 1, 1, 1|...], [1, 1, 1, 1, 1|...], [1, 1, 1, 1|...], [1, 1, 1|...], [1, 1|...], [1|...], [...|...]|...],
+% L = 1489.
+
+
 
 % ####################################
 % Patrones
@@ -243,9 +238,7 @@ todosConstruir2(Total, Piezas, Soluciones, N):- findall( Sol, construir2(Total, 
 tienePatron(_,[]).
 tienePatron(Patron,Lista) :- append(Patron, Resto, Lista),  tienePatron(Patron, Resto).
 
-
-construirConPatron(Total, Piezas, Patron, Solucion) :- todosConstruir1(Total, Piezas, Soluciones,_),
-													   member(Sol,Soluciones), tienePatron(Patron,Sol),  Solucion = Sol.
+construirConPatron(Total, Piezas, Patron, Solucion) :- construir1(Total, Piezas, Solucion), tienePatron(Patron,Solucion).
 
 % Tests: 
 % ?- construirConPatron(5, [pieza(1,10)], [A], Sol).

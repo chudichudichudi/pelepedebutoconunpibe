@@ -1,49 +1,68 @@
-%ap([],[],[]).
-ap([],X,X).
+%ejercicio 4
 
-ap([X|L],Y,[X|Z]) :- ap(L,Y,Z). 
+concatenar([], X, X).
+concatenar([X|L1], L2, [X|L3]) :- concatenar(L1, L2, L3). 
 
+%ejercicio 5
 
 last([X],X).
-last([_|T],S) :- last(T,S).
+last([_|T],Z) :- last(T,Z) .
 
-l2(L,U) :- ap(L,U,[L|[U]]).
+reverse([],[]).
+reverse([X|L1],L2):- reverse(L1,L3), concatenar(L3,[X],L2).
 
-rev([],[]).
-rev([X|T],S) :- rev(T,S1), append(S1,[X],S).
+maxlista([X], X).
+maxlista([X,Y|L], M):- X >= Y, maxlista([X|L],M).
+maxlista([X,Y|L], M):- X =< Y, maxlista([Y|L],M).
 
+prefijo(P, L):- concatenar(P,_,L).
 
-maxLista2([X],M):- M>=X.
-maxLista2([X|T],M) :-  M>=X, member(M,T), maxLista2(T,M).
+sufijo(S, L):- concatenar(_,S,L).
 
-m2([X],X).
+sublista(S,L):- prefijo(A,L), sufijo(S,A).
 
-m2( [H|T], Z) :- m2(T,Z), Z=<H.
+pertenece(X, [X|_]).
+pertenece(X, [_|L]) :- pertenece(X,L).
 
-m2( [X|T], X) :- m2(T,Z), Z>=X.
+%ejercicio 6
 
-pref(S,L) :- append(S,_,L).
-suf(S,L) :- append(_,S,L).
+aplanar([],[]).
+aplanar([X|T],YS):- aplanar(X,XS), aplanar(T,T1), concatenar(XS,T1,YS).
+aplanar([X|Tail1],[X|Tail2]) :- X \= [], X \= [_|_], aplanar(Tail1, Tail2).
 
-sublista(S,L) :- pref(S1,L), suf(S,S1).
+%ejercicio 7
 
-pert(X,L) :- sublista([X],L).
+palindromo(L,L1):- reverse(L,RL), concatenar(L,RL,L1).
 
-%apl([X|T],L) :- apl(T,S2), ap(X,S2,L).
-%apl([[X]],[X]).
-%apl([],[]).
-%apl([[]],[]).
+doble([X], [X,X]).
+doble([X|T],[X,X|T1]):- doble(T,T1).
 
-apl([],[]).
-%Aplano la cabeza y la cola y concateno los resultados
-apl([X|T],L) :- apl(X, SolHead), apl(T, SolTail), ap(SolHead,SolTail,L).
+iesimo(0,[X|_],X).
+iesimo(I,[_|T],X):- N is I - 1, iesimo(N,T,X) .
 
-%La cabeza no puede ser una lista, ni vacia ni con contenido.
-apl([X|Tail1],[X|Tail2]) :- X \= [], X \= [_|_], apl(Tail1, Tail2).
-
-split(N,L1,L2,RES) :- ap(X,L4,L1).
+%ejercicio 8
 
 desde(X,X).
-desde(X,Y) :- var(Y), N is X + 1, desde(N,Y).
-desde(X,Y) :- nonvar(Y), Y > X.
+desde(X,Y) :- nonvar(Y), X >=Y.
+desde(X,Y) :- var(Y), N is X+1, desde(N,Y).
+
+%ejercicio 9
+
+quitarRepetidos([X|T1], L) :- member(X,T1), quitarRepetidos(T1, L).
+quitarRepetidos([X|T1], L) :- not(member(X,T1)), quitarRepetidos(T1, [X|L]).
+interseccion([], X, X).
+interseccion([X|T1], L, T3) :- \+(member(X,L)),
+									interseccion(T1, [X|L], T3).
+interseccion([X|T1], L, T3) :- member(X,L),
+									interseccion(T1, T2, [X|T3]).
+
+%ejercicio 10
+%ejercicio 11
+%ejercicio 12
+%ejercicio 13
+%ejercicio 14
+%ejercicio 15
+%ejercicio 16
+%ejercicio 17
+
 
